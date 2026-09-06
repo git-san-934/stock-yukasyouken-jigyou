@@ -29,9 +29,16 @@ class _Extractor(HTMLParser):
             self.parts.append("\n")
 
     def handle_data(self, data):
-        text = data.replace("　", " ").strip() if not self._in_cell else data.strip()
+        if self._in_cell:
+            text = data.strip()
+            if text:
+                self.parts.append(text)
+            return
+        # 有報のプレーンテキストは全角スペース (U+3000) で段落を区切る慣習がある。
+        # HTML 断片にタグが無いケースが多いので、ここで段落 = 空行 に変換しておく。
+        text = data.replace("　", "\n\n").strip()
         if text:
-            self.parts.append(text if self._in_cell else text + " ")
+            self.parts.append(text + " ")
 
 
 def html_to_text(html: str) -> str:
