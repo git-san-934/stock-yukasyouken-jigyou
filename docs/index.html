@@ -5,6 +5,17 @@ const count = document.getElementById('count');
 let data = [];
 fetch('search.json').then(r => r.json()).then(d => { data = d; render(''); });
 function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function hl(text, term){
+  if (!term) return esc(text);
+  const low = text.toLowerCase(); let out = '', i = 0;
+  for (;;){
+    const j = low.indexOf(term, i);
+    if (j < 0){ out += esc(text.slice(i)); break; }
+    out += esc(text.slice(i, j)) + '<mark>' + esc(text.slice(j, j + term.length)) + '</mark>';
+    i = j + term.length;
+  }
+  return out;
+}
 function render(term){
   term = term.trim().toLowerCase();
   const hits = data.filter(c =>
@@ -20,10 +31,11 @@ function render(term){
       if (i >= 0) snip = (i>40?'…':'') + c.body.slice(Math.max(0,i-40), i+80) + '…';
     }
     if (!snip) snip = c.body.slice(0, 90) + '…';
-    return `<a class="card" href="companies/${encodeURIComponent(c.code)}.html">
+    const q = term ? '?q=' + encodeURIComponent(term) : '';
+    return `<a class="card" href="companies/${encodeURIComponent(c.code)}.html${q}">
       <div class="code">${esc(c.code)}</div>
-      <div class="name">${esc(c.name)}</div>
-      <div class="snip">${esc(snip)}</div></a>`;
+      <div class="name">${hl(c.name, term)}</div>
+      <div class="snip">${hl(snip, term)}</div></a>`;
   }).join('');
 }
 box.addEventListener('input', () => render(box.value));

@@ -41,6 +41,13 @@ h1 { font-size: 1.4rem; margin: 0 0 4px; }
 article { white-space: pre-wrap; word-break: break-word; }
 .back { display: inline-block; margin-bottom: 16px; font-size: .9rem; }
 .quote { border-left: 3px solid #bbb; padding-left: 12px; color: #888; font-size: .88rem; margin: 0 0 20px; }
+mark { background: #ffe066; color: #1a1a1a; border-radius: 2px; padding: 0 1px; }
+mark.active { background: #ff8c1a; color: #fff; box-shadow: 0 0 0 2px #ff8c1a; }
+@media (prefers-color-scheme: dark) { mark { background: #8a6d00; color: #fff; }
+  mark.active { background: #ff8c1a; color: #111; } }
+#mnav { display: inline; white-space: nowrap; }
+#mnav button { font: inherit; padding: 1px 8px; margin-left: 4px; cursor: pointer;
+  border: 1px solid #bbb; border-radius: 6px; background: transparent; color: inherit; }
 """
 
 INDEX_JS = """
@@ -50,6 +57,17 @@ const count = document.getElementById('count');
 let data = [];
 fetch('search.json').then(r => r.json()).then(d => { data = d; render(''); });
 function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function hl(text, term){
+  if (!term) return esc(text);
+  const low = text.toLowerCase(); let out = '', i = 0;
+  for (;;){
+    const j = low.indexOf(term, i);
+    if (j < 0){ out += esc(text.slice(i)); break; }
+    out += esc(text.slice(i, j)) + '<mark>' + esc(text.slice(j, j + term.length)) + '</mark>';
+    i = j + term.length;
+  }
+  return out;
+}
 function render(term){
   term = term.trim().toLowerCase();
   const hits = data.filter(c =>
@@ -65,13 +83,54 @@ function render(term){
       if (i >= 0) snip = (i>40?'…':'') + c.body.slice(Math.max(0,i-40), i+80) + '…';
     }
     if (!snip) snip = c.body.slice(0, 90) + '…';
-    return `<a class="card" href="companies/${encodeURIComponent(c.code)}.html">
+    const q = term ? '?q=' + encodeURIComponent(term) : '';
+    return `<a class="card" href="companies/${encodeURIComponent(c.code)}.html${q}">
       <div class="code">${esc(c.code)}</div>
-      <div class="name">${esc(c.name)}</div>
-      <div class="snip">${esc(snip)}</div></a>`;
+      <div class="name">${hl(c.name, term)}</div>
+      <div class="snip">${hl(snip, term)}</div></a>`;
   }).join('');
 }
 box.addEventListener('input', () => render(box.value));
+"""
+
+# 会社ページ用: ?q=... が付いていたら本文中の一致語をハイライトして辿れるようにする
+DETAIL_JS = """
+(function(){
+  const term = (new URLSearchParams(location.search).get('q') || '').trim();
+  const art = document.querySelector('article');
+  const nav = document.getElementById('mnav');
+  if (!term || !art) return;
+  const low = term.toLowerCase();
+  function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  const text = art.textContent, tl = text.toLowerCase();
+  let out = '', i = 0;
+  for (;;){
+    const j = tl.indexOf(low, i);
+    if (j < 0){ out += esc(text.slice(i)); break; }
+    out += esc(text.slice(i, j)) + '<mark>' + esc(text.slice(j, j + term.length)) + '</mark>';
+    i = j + term.length;
+  }
+  art.innerHTML = out;
+  const marks = [...art.querySelectorAll('mark')];
+  if (!marks.length) return;
+  let mi = 0;
+  const cnt = document.createElement('span');
+  function focus(n){
+    marks[mi].classList.remove('active');
+    mi = (n + marks.length) % marks.length;
+    marks[mi].classList.add('active');
+    marks[mi].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    cnt.textContent = ' ' + (mi + 1) + ' / ' + marks.length + ' ';
+  }
+  nav.textContent = '「' + term + '」';
+  nav.appendChild(cnt);
+  const mk = (label, d) => { const b = document.createElement('button');
+    b.textContent = label; b.onclick = () => focus(mi + d); nav.appendChild(b); };
+  mk('‹ 前', -1); mk('次 ›', 1);
+  marks[0].classList.add('active');
+  cnt.textContent = ' 1 / ' + marks.length + ' ';
+  marks[0].scrollIntoView({ block: 'center' });
+})();
 """
 
 
@@ -146,9 +205,11 @@ def build() -> None:
             "<a class=\"back\" href=\"../index.html\">← 一覧へ</a>"
             f"<h1>{html.escape(c['name'])}"
             f"<span class=\"code\"> {html.escape(c['code'])}</span></h1>"
-            f"<div class=\"sub\">事業の内容 ／ 対象期間 {html.escape(period)}</div>"
+            f"<div class=\"sub\">事業の内容 ／ 対象期間 {html.escape(period)} "
+            "<span id=\"mnav\"></span></div>"
             f"<p class=\"quote\">{html.escape(quote)}</p>"
             f"<article>{html.escape(rest)}</article>"
+            f"<script>{DETAIL_JS}</script>"
         )
         (DOCS / "companies" / f"{c['code']}.html").write_text(
             page(f"{c['name']} 事業の内容", body, depth=1), encoding="utf-8")

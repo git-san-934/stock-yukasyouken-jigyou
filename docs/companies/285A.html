@@ -1,4 +1,4 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>キオクシアホールディングス株式会社 事業の内容</title><link rel="stylesheet" href="../style.css"></head><body><main><a class="back" href="../index.html">← 一覧へ</a><h1>キオクシアホールディングス株式会社<span class="code"> 285A</span></h1><div class="sub">事業の内容 ／ 対象期間 2025-04-01〜2026-03-31</div><p class="quote">出典: 有価証券報告書 (EDINET 書類ID S100YJ18) / 対象期間 2025-04-01〜2026-03-31</p><article>３【事業の内容】
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>キオクシアホールディングス株式会社 事業の内容</title><link rel="stylesheet" href="../style.css"></head><body><main><a class="back" href="../index.html">← 一覧へ</a><h1>キオクシアホールディングス株式会社<span class="code"> 285A</span></h1><div class="sub">事業の内容 ／ 対象期間 2025-04-01〜2026-03-31 <span id="mnav"></span></div><p class="quote">出典: 有価証券報告書 (EDINET 書類ID S100YJ18) / 対象期間 2025-04-01〜2026-03-31</p><article>３【事業の内容】
 
 当社及びその子会社（以下「当社グループ」という。）は、本書提出日現在、当社及び連結子会社22社（国内７社、海外15社）により構成されています。当社グループは、メモリ及び関連製品の製造、販売、研究開発、その他サービスを行っています。当社グループ及び関連会社等６社（国内４社、海外２社）は、メモリ及び関連製品の製造、販売、研究開発、その他サービスを行う、世界最大級（注）のフラッシュメモリ専業プレイヤーです。
 
@@ -30,4 +30,41 @@ SSD &amp; ストレージの主要製品であるSSD（Solid State Drive）は�
 
 （注）１．不揮発性半導体メモリとは、電源を切っても記憶が消えないメモリです。２．微細化とは、メモリチップの中の回路線幅を狭くすることでメモリセル（１ビットの情報を保持するために必要な回路構成）の面積を縮小する技術です。３．積層化技術とは、メモリセルを多層構造にする技術です。４．CBAとは、メモリセルの制御を担うCMOS回路とメモリセルアレイを２枚のウエハーに別々に作製し、その後２枚のウエハーを貼り合わせる技術です。５．OPSとは、選択ゲート分離体を、メモリ機能を持つメモリストリング間に配置し、ダミーメモリストリングを削除することで、メモリ密度を高める技術です。６．小数点以下第２位を四捨五入しております。 （事業系統図）○印は連結子会社、※印は関連会社等です。（注）
 
-キオクシア株式会社及びキオクシアシステムズ株式会社のほか、キオクシアエンジニアリング株式会社において研究開発活動を行っています。また、キオクシアイスラエル社とキオクシアテクノロジーUK社においてはSSDソフトウェア・SSD製品に係る研究開発活動を、Solid State Storage Technology CorporationにおいてはSSD製品に係る研究開発活動を行っています。</article></main></body></html>
+キオクシア株式会社及びキオクシアシステムズ株式会社のほか、キオクシアエンジニアリング株式会社において研究開発活動を行っています。また、キオクシアイスラエル社とキオクシアテクノロジーUK社においてはSSDソフトウェア・SSD製品に係る研究開発活動を、Solid State Storage Technology CorporationにおいてはSSD製品に係る研究開発活動を行っています。</article><script>
+(function(){
+  const term = (new URLSearchParams(location.search).get('q') || '').trim();
+  const art = document.querySelector('article');
+  const nav = document.getElementById('mnav');
+  if (!term || !art) return;
+  const low = term.toLowerCase();
+  function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  const text = art.textContent, tl = text.toLowerCase();
+  let out = '', i = 0;
+  for (;;){
+    const j = tl.indexOf(low, i);
+    if (j < 0){ out += esc(text.slice(i)); break; }
+    out += esc(text.slice(i, j)) + '<mark>' + esc(text.slice(j, j + term.length)) + '</mark>';
+    i = j + term.length;
+  }
+  art.innerHTML = out;
+  const marks = [...art.querySelectorAll('mark')];
+  if (!marks.length) return;
+  let mi = 0;
+  const cnt = document.createElement('span');
+  function focus(n){
+    marks[mi].classList.remove('active');
+    mi = (n + marks.length) % marks.length;
+    marks[mi].classList.add('active');
+    marks[mi].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    cnt.textContent = ' ' + (mi + 1) + ' / ' + marks.length + ' ';
+  }
+  nav.textContent = '「' + term + '」';
+  nav.appendChild(cnt);
+  const mk = (label, d) => { const b = document.createElement('button');
+    b.textContent = label; b.onclick = () => focus(mi + d); nav.appendChild(b); };
+  mk('‹ 前', -1); mk('次 ›', 1);
+  marks[0].classList.add('active');
+  cnt.textContent = ' 1 / ' + marks.length + ' ';
+  marks[0].scrollIntoView({ block: 'center' });
+})();
+</script></main></body></html>

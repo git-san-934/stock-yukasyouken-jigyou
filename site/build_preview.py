@@ -36,14 +36,6 @@ def main() -> None:
 .preview-badge {{ position: fixed; top: 0; right: 0; background: #d97706; color: #fff;
   font-size: .72rem; padding: 3px 10px; border-bottom-left-radius: 8px; }}
 article {{ margin-top: 12px; }}
-mark {{ background: #ffe066; color: #1a1a1a; border-radius: 2px; padding: 0 1px; }}
-mark.active {{ background: #ff8c1a; color: #fff; box-shadow: 0 0 0 2px #ff8c1a; }}
-@media (prefers-color-scheme: dark) {{ mark {{ background: #8a6d00; color: #fff; }}
-  mark.active {{ background: #ff8c1a; color: #111; }} }}
-#mnav {{ white-space: nowrap; }}
-#mnav button {{ font: inherit; padding: 1px 8px; margin-left: 4px; cursor: pointer;
-  border: 1px solid #bbb; border-radius: 6px; background: transparent; color: inherit; }}
-#mnav button:disabled {{ opacity: .4; cursor: default; }}
 </style></head><body>
 <div class="preview-badge">PREVIEW</div><main>
 <h1>有価証券報告書 事業の内容ビューア</h1>

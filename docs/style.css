@@ -20,3 +20,10 @@ h1 { font-size: 1.4rem; margin: 0 0 4px; }
 article { white-space: pre-wrap; word-break: break-word; }
 .back { display: inline-block; margin-bottom: 16px; font-size: .9rem; }
 .quote { border-left: 3px solid #bbb; padding-left: 12px; color: #888; font-size: .88rem; margin: 0 0 20px; }
+mark { background: #ffe066; color: #1a1a1a; border-radius: 2px; padding: 0 1px; }
+mark.active { background: #ff8c1a; color: #fff; box-shadow: 0 0 0 2px #ff8c1a; }
+@media (prefers-color-scheme: dark) { mark { background: #8a6d00; color: #fff; }
+  mark.active { background: #ff8c1a; color: #111; } }
+#mnav { display: inline; white-space: nowrap; }
+#mnav button { font: inherit; padding: 1px 8px; margin-left: 4px; cursor: pointer;
+  border: 1px solid #bbb; border-radius: 6px; background: transparent; color: inherit; }
