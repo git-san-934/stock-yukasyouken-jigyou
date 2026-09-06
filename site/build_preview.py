@@ -36,6 +36,14 @@ def main() -> None:
 .preview-badge {{ position: fixed; top: 0; right: 0; background: #d97706; color: #fff;
   font-size: .72rem; padding: 3px 10px; border-bottom-left-radius: 8px; }}
 article {{ margin-top: 12px; }}
+mark {{ background: #ffe066; color: #1a1a1a; border-radius: 2px; padding: 0 1px; }}
+mark.active {{ background: #ff8c1a; color: #fff; box-shadow: 0 0 0 2px #ff8c1a; }}
+@media (prefers-color-scheme: dark) {{ mark {{ background: #8a6d00; color: #fff; }}
+  mark.active {{ background: #ff8c1a; color: #111; }} }}
+#mnav {{ white-space: nowrap; }}
+#mnav button {{ font: inherit; padding: 1px 8px; margin-left: 4px; cursor: pointer;
+  border: 1px solid #bbb; border-radius: 6px; background: transparent; color: inherit; }}
+#mnav button:disabled {{ opacity: .4; cursor: default; }}
 </style></head><body>
 <div class="preview-badge">PREVIEW</div><main>
 <h1>有価証券報告書 事業の内容ビューア</h1>
@@ -48,6 +56,26 @@ const DATA = {data_json};
 const box=document.getElementById('q'), list=document.getElementById('list'),
       count=document.getElementById('count'), detail=document.getElementById('detail');
 function esc(s){{return s.replace(/[&<>"]/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}}[c]));}}
+function hl(text,term){{
+  if(!term) return esc(text);
+  const low=text.toLowerCase(); let out='', i=0;
+  for(;;){{
+    const j=low.indexOf(term,i);
+    if(j<0){{ out+=esc(text.slice(i)); break; }}
+    out+=esc(text.slice(i,j))+'<mark>'+esc(text.slice(j,j+term.length))+'</mark>';
+    i=j+term.length;
+  }}
+  return out;
+}}
+let marks=[], mi=0;
+function focusMark(n){{
+  if(!marks.length) return;
+  marks[mi]&&marks[mi].classList.remove('active');
+  mi=(n+marks.length)%marks.length;
+  const m=marks[mi]; m.classList.add('active');
+  m.scrollIntoView({{block:'center',behavior:'smooth'}});
+  const c=document.getElementById('mcount'); if(c) c.textContent=(mi+1)+' / '+marks.length;
+}}
 function render(term){{
   detail.hidden=true; list.hidden=false; count.hidden=false;
   term=(term||'').trim().toLowerCase();
@@ -60,19 +88,31 @@ function render(term){{
       if(i>=0) snip=(i>40?'…':'')+c.body.slice(Math.max(0,i-40),i+80)+'…';}}
     if(!snip) snip=c.body.slice(0,90)+'…';
     return `<a class="card" href="#${{encodeURIComponent(c.code)}}">
-      <div class="code">${{esc(c.code)}}</div><div class="name">${{esc(c.name)}}</div>
-      <div class="snip">${{esc(snip)}}</div></a>`;
+      <div class="code">${{esc(c.code)}}</div><div class="name">${{hl(c.name,term)}}</div>
+      <div class="snip">${{hl(snip,term)}}</div></a>`;
   }}).join('');
 }}
 function show(code){{
   const c=DATA.find(x=>x.code===code); if(!c) return render('');
+  const term=box.value.trim().toLowerCase();
   list.hidden=true; count.hidden=true; detail.hidden=false;
   detail.innerHTML=`<a class="back" href="#">← 一覧へ</a>
     <h1>${{esc(c.name)}}<span class="code"> ${{esc(c.code)}}</span></h1>
-    <div class="sub">事業の内容 ／ 対象期間 ${{esc(c.period)}}</div>
+    <div class="sub">事業の内容 ／ 対象期間 ${{esc(c.period)}}
+      <span id="mnav"></span></div>
     <p class="quote">出典: 有価証券報告書 (EDINET 書類ID ${{esc(c.doc_id)}})</p>
-    <article>${{esc(c.body)}}</article>`;
-  window.scrollTo(0,0);
+    <article>${{hl(c.body,term)}}</article>`;
+  marks=[...detail.querySelectorAll('article mark')]; mi=0;
+  const nav=document.getElementById('mnav');
+  if(marks.length){{
+    nav.innerHTML=`「${{esc(box.value.trim())}}」<span id="mcount"></span>`
+      +`<button id="mprev">‹ 前</button><button id="mnext">次 ›</button>`;
+    document.getElementById('mprev').onclick=()=>focusMark(mi-1);
+    document.getElementById('mnext').onclick=()=>focusMark(mi+1);
+    focusMark(0);
+  }} else {{
+    window.scrollTo(0,0);
+  }}
 }}
 function route(){{
   const h=decodeURIComponent(location.hash.replace(/^#/,''));
