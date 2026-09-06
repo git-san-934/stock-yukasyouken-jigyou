@@ -1,0 +1,22 @@
+
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.7 system-ui, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  background: #fafafa; color: #1a1a1a; }
+@media (prefers-color-scheme: dark) { body { background: #14161a; color: #e8e8e8; } a { color: #7fb3ff; } }
+main { max-width: 860px; margin: 0 auto; padding: 24px 18px 80px; }
+h1 { font-size: 1.4rem; margin: 0 0 4px; }
+.sub { color: #888; font-size: .86rem; margin-bottom: 20px; }
+#q { width: 100%; padding: 11px 13px; font-size: 1rem; border: 1px solid #bbb; border-radius: 8px;
+  background: transparent; color: inherit; }
+.card { display: block; padding: 14px 16px; margin-top: 10px; border: 1px solid #ddd; border-radius: 10px;
+  text-decoration: none; color: inherit; background: rgba(127,127,127,.04); }
+.card:hover { border-color: #888; }
+.card .code { font-variant-numeric: tabular-nums; color: #888; font-size: .85rem; }
+.card .name { font-weight: 600; font-size: 1.05rem; }
+.card .snip { color: #666; font-size: .9rem; margin-top: 4px; }
+@media (prefers-color-scheme: dark) { .card .snip { color: #aaa; } }
+.count { color: #888; font-size: .85rem; margin-top: 14px; }
+article { white-space: pre-wrap; word-break: break-word; }
+.back { display: inline-block; margin-bottom: 16px; font-size: .9rem; }
+.quote { border-left: 3px solid #bbb; padding-left: 12px; color: #888; font-size: .88rem; margin: 0 0 20px; }
