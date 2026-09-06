@@ -16,3 +16,6 @@ Thumbs.db
 
 # editor
 *.lnk
+
+# 生成物（プレビュー、ローカル確認用）
+preview.html
