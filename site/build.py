@@ -72,62 +72,69 @@ function loadBodies(){
   }).catch(() => { bodiesLoading = false; note.textContent = '本文データの読み込みに失敗しました。'; });
 }
 function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function hl(text, term){
-  if (!term) return esc(text);
-  const low = text.toLowerCase(); let out = '', i = 0;
-  for (;;){
-    const j = low.indexOf(term, i);
-    if (j < 0){ out += esc(text.slice(i)); break; }
-    out += esc(text.slice(i, j)) + '<mark>' + esc(text.slice(j, j + term.length)) + '</mark>';
-    i = j + term.length;
+function escRe(s){ return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
+// スペース（半角・全角）区切りで複数語に分解。すべてを含む行だけヒット（AND 検索）。
+function termsOf(q){ return q.trim().toLowerCase().split(/[\\s\\u3000]+/).filter(Boolean); }
+function hl(text, terms){
+  if (!terms.length) return esc(text);
+  const re = new RegExp('(' + terms.map(escRe).join('|') + ')', 'gi');
+  let out = '', last = 0, m;
+  while ((m = re.exec(text))){
+    if (m.index === re.lastIndex){ re.lastIndex++; continue; }
+    out += esc(text.slice(last, m.index)) + '<mark>' + esc(m[0]) + '</mark>';
+    last = m.index + m[0].length;
   }
-  return out;
+  return out + esc(text.slice(last));
 }
-function render(term){
-  term = term.trim().toLowerCase();
-  if (term) loadBodies();
+function render(q){
+  const terms = termsOf(q);
+  if (terms.length) loadBodies();
   const hits = data.filter(c => {
-    if (!term) return true;
-    if (c.name.toLowerCase().includes(term) || c.code.toLowerCase().includes(term)) return true;
-    const body = bodies && bodies[c.code];
-    return body ? body.toLowerCase().includes(term) : false;
+    if (!terms.length) return true;
+    const body = (bodies && bodies[c.code]) || c.snip;
+    const hay = (c.name + ' ' + c.code + ' ' + body).toLowerCase();
+    return terms.every(t => hay.includes(t));
   });
   count.textContent = hits.length + ' 件' + (hits.length > MAX_ROWS ? `（先頭 ${MAX_ROWS} 件を表示）` : '');
   list.innerHTML = hits.slice(0, MAX_ROWS).map(c => {
     const body = (bodies && bodies[c.code]) || c.snip;
     let snip = '';
-    if (term){
-      const i = body.toLowerCase().indexOf(term);
-      if (i >= 0) snip = (i>40?'…':'') + body.slice(Math.max(0,i-40), i+80) + '…';
+    if (terms.length){
+      const bl = body.toLowerCase();
+      let best = -1;
+      for (const t of terms){ const i = bl.indexOf(t); if (i >= 0 && (best < 0 || i < best)) best = i; }
+      if (best >= 0) snip = (best>40?'…':'') + body.slice(Math.max(0,best-40), best+80) + '…';
     }
     if (!snip) snip = body.slice(0, 90) + '…';
-    const q = term ? '?q=' + encodeURIComponent(term) : '';
-    return `<a class="card" href="companies/${encodeURIComponent(c.code)}.html${q}">
+    const qs = terms.length ? '?q=' + encodeURIComponent(terms.join(' ')) : '';
+    return `<a class="card" href="companies/${encodeURIComponent(c.code)}.html${qs}">
       <div class="code">${esc(c.code)}</div>
-      <div class="name">${hl(c.name, term)}</div>
-      <div class="snip">${hl(snip, term)}</div></a>`;
+      <div class="name">${hl(c.name, terms)}</div>
+      <div class="snip">${hl(snip, terms)}</div></a>`;
   }).join('');
 }
 box.addEventListener('input', () => render(box.value));
 """
 
-# 会社ページ用: ?q=... が付いていたら本文中の一致語をハイライトして辿れるようにする
+# 会社ページ用: ?q=... が付いていたら本文中の一致語（複数可）をハイライトして辿れるようにする
 DETAIL_JS = """
 (function(){
-  const term = (new URLSearchParams(location.search).get('q') || '').trim();
+  const raw = (new URLSearchParams(location.search).get('q') || '').trim();
+  const terms = raw.toLowerCase().split(/[\\s\\u3000]+/).filter(Boolean);
   const art = document.querySelector('article');
   const nav = document.getElementById('mnav');
-  if (!term || !art) return;
-  const low = term.toLowerCase();
+  if (!terms.length || !art) return;
   function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-  const text = art.textContent, tl = text.toLowerCase();
-  let out = '', i = 0;
-  for (;;){
-    const j = tl.indexOf(low, i);
-    if (j < 0){ out += esc(text.slice(i)); break; }
-    out += esc(text.slice(i, j)) + '<mark>' + esc(text.slice(j, j + term.length)) + '</mark>';
-    i = j + term.length;
+  function escRe(s){ return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
+  const text = art.textContent;
+  const re = new RegExp('(' + terms.map(escRe).join('|') + ')', 'gi');
+  let out = '', last = 0, m;
+  while ((m = re.exec(text))){
+    if (m.index === re.lastIndex){ re.lastIndex++; continue; }
+    out += esc(text.slice(last, m.index)) + '<mark>' + esc(m[0]) + '</mark>';
+    last = m.index + m[0].length;
   }
+  out += esc(text.slice(last));
   art.innerHTML = out;
   const marks = [...art.querySelectorAll('mark')];
   if (!marks.length) return;
@@ -140,7 +147,7 @@ DETAIL_JS = """
     marks[mi].scrollIntoView({ block: 'center', behavior: 'smooth' });
     cnt.textContent = ' ' + (mi + 1) + ' / ' + marks.length + ' ';
   }
-  nav.textContent = '「' + term + '」';
+  nav.textContent = '「' + terms.join(' ') + '」';
   nav.appendChild(cnt);
   const mk = (label, d) => { const b = document.createElement('button');
     b.textContent = label; b.onclick = () => focus(mi + d); nav.appendChild(b); };
@@ -211,7 +218,8 @@ def build() -> None:
         "<h1>有価証券報告書 事業の内容ビューア</h1>"
         f"<div class=\"sub\">EDINET の有価証券報告書から「事業の内容」を抽出。"
         f"<a href=\"{PORTAL_URL}\">ポータルへ戻る</a></div>"
-        "<input id=\"q\" type=\"search\" placeholder=\"会社名・証券コード・本文で検索\" autofocus>"
+        "<input id=\"q\" type=\"search\" "
+        "placeholder=\"会社名・証券コード・本文で検索（スペース区切りで AND 検索）\" autofocus>"
         "<div id=\"note\" class=\"count\"></div>"
         "<div id=\"count\" class=\"count\"></div><div id=\"list\"></div>"
         f"<script>{INDEX_JS}</script>"
