@@ -22,19 +22,28 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: 事業の内容を更新
+      - name: キャッシュ（書類一覧）
+        uses: actions/cache@v4
+        with:
+          path: cache/doclist
+          key: doclist-${{ github.run_id }}
+          restore-keys: doclist-
+
+      # API キー未設定や EDINET 側の不調でも、コミット済み data/ からサイトは再生成する
+      - name: 事業の内容を更新（全提出者・差分のみ）
+        continue-on-error: true
         env:
           EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
-        run: python scripts/update_all.py --days 500
+        run: python scripts/update_all.py --all --days 500 --drop-csv
 
       - name: サイト生成
         run: python site/build.py
 
-      - name: data/ と docs/ をコミット
+      - name: data/ をコミット
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data docs
+          git add data
           git diff --cached --quiet || git commit -m "chore: 事業の内容を更新 ($(date -u +%Y-%m-%d))"
           git push
 

@@ -1,0 +1,7 @@
+# 横浜ゴム株式会社 事業の内容
+
+> 出典: 有価証券報告書 (EDINET 書類ID S100XSMJ) / 対象期間 2025-01-01〜2025-12-31
+
+３ 【事業の内容】当社グループ(当社及び関係会社)は、当社及び子会社158社、関連会社35社で構成され、当社グループが営んでいる主な事業の内容と事業を構成している各関係会社の当該事業における位置づけは次のとおりであります。なお、以下の３事業は「第５ 経理の状況 １(１)連結財務諸表 連結財務諸表注記」に掲げるセグメント情報におけるセグメントの区分と同一であります。 事業主要製品区分国内海外タイヤ乗用車用、トラック・バス用、小型トラック用、農業機械用、産業車両用、鉱山・建設車両用、林業機械用などの各種タイヤ、チューブ、アルミホイール、自動車関連用品主要製造販売会社当社愛知タイヤ工業㈱日本ジャイアントタイヤ株式会社YTMMX Japan合同会社 (更生タイヤ)ヨコハマタイヤリトレッド㈱Yokohama Tire Philippines, Inc.杭州優科豪馬輪胎有限公司Yokohama Tire Manufacturing (Thailand) Co., Ltd.蘇州優科豪馬輪胎有限公司LLC Yokohama R.P.Z.Yokohama Tire Manufacturing Mississippi, LLCYokohama Tire Vietnam Inc.Yokohama Tire Manufacturing Virginia LLCYokohama India Private Ltd.Alliance Tire Company Ltd. ATC Tires Private Ltd.ATC Tires AP Pvt. Ltd.Yokohama TWS S.p.A.Yokohama TWS Czech Republic a.s.Yokohama TWS North America, Inc.  他12社主要販売会社㈱ヨコハマタイヤジャパン 他60社Yokohama Tire Corporation  他57社その他ヨコハマ・オフハイウェイタイヤ㈱浜ゴムエンジニアリング㈱ 他４社Yokohama Corporation Of North America  他12社ＭＢコンベヤベルト、各種ホース、防舷材、オイルフェンス、マリンホース、航空部品主要製造販売会社当社Yokohama Industries Americas Inc.Yokohama Industries Americas Ohio Inc. 協機工業股份有限公司Yokohama Rubber (Thailand) Co., Ltd.杭州優科豪馬橡胶制品有限公司Yokohama Industries Americas de Mexico, S. de R.L. de C. V. PT.Yokohama Industrial Products Manufacturing Indonesia山東横浜橡胶工業制品有限公司
+
+他１社主要販売会社横浜ゴムMBジャパン㈱ 他１社上海優科豪馬橡胶制品商貿有限公司Yokohama Aerospace America Inc.  他１社その他スポーツ用品、情報処理サービス等 ㈱プロギアハマゴムエイコム㈱ 他７社Y.T. Rubber Co., Ltd.   事業の系統図は、次のとおりであります。  (注) その他の会社は、主にグループ内におけるサービスの提供、持株会社機能等を有しております。

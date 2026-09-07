@@ -1,0 +1,7 @@
+# 株式会社ＪＶＣケンウッド 事業の内容
+
+> 出典: 有価証券報告書 (EDINET 書類ID S100YG3R) / 対象期間 2025-04-01〜2026-03-31
+
+３【事業の内容】当社グループは、当社及び当社の子会社61社(国内15社、海外46社)、並びに関連会社５社（国内４社、海外１社）により構成され、モビリティ＆テレマティクスサービス分野関連、セーフティ＆セキュリティ分野関連、エンタテインメント
+
+ソリューションズ分野関連の製造・販売を主要な事業とし、かつ、これに付帯する事業を営んでいます。当社グループの事業区分及び主要製品並びにそれに係わる主要な関係会社の位置付けは以下のとおりであり、事業区分は、「第５ 経理の状況 １ 連結財務諸表等 (1)連結財務諸表 連結財務諸表注記」に記載されているセグメントの区分と同一です。 （2026年３月31日現在）事業区分主要製品主要会社名モビリティ＆テレマティクスサービス分野カーAVシステムカーナビゲーションシステム車載用スピーカー・アンプ・アンテナ・ケーブルドライブレコーダー車載用デバイステレマティクスソリューション（生産会社）株式会社ＪＶＣケンウッド長野株式会社ＪＶＣケンウッド長岡PT JVCKENWOOD Electronics IndonesiaJVCKENWOOD Optical Electronics (Thailand) Co., Ltd. （販売会社）株式会社ＪＶＣケンウッドJVCKENWOOD USA CorporationJVCKENWOOD U.K. LimitedJVCKENWOOD Deutschland GmbHJVCKENWOOD Singapore Pte. Ltd. （開発・生産及び販売会社）Shinwa Industries (China) LimitedASK Industries S.p.A.セーフティ＆セキュリティ分野業務用無線機器アマチュア無線機器業務用映像監視機器業務用オーディオ機器医用画像表示モニター（生産会社）株式会社ＪＶＣケンウッド山形株式会社ＪＶＣケンウッド長岡JVCKENWOOD Electronics Malaysia Sdn. Bhd. （販売会社）株式会社ＪＶＣケンウッド株式会社ＪＶＣケンウッド・公共産業システムJVCKENWOOD USA CorporationJVCKENWOOD Canada Inc.JVCKENWOOD U.K. Limited （開発・生産及び販売会社）EF Johnson Technologies, Inc.Radio Activity S.r.l.    事業区分主要製品主要会社名エンタテインメントソリューションズ分野プロジェクターヘッドホンホームオーディオポータブル電源業務用ビデオカメラCD/DVD(パッケージソフト)等の受託ビジネスCD/DVD（パッケージソフト）の製造オーディオ・ビデオソフト・配信等のコンテンツ等（生産会社）株式会社ＪＶＣケンウッド株式会社ＪＶＣケンウッド・クリエイティブメディアJVCKENWOOD Optical Electronics (Thailand) Co., Ltd. （販売会社）株式会社ＪＶＣケンウッドJVCKENWOOD USA CorporationJVCKENWOOD U.K. Limited （企画・制作及び販売会社）ビクターエンタテインメント株式会社 その他サービスパーツ他（その他の会社）株式会社ＪＶＣケンウッド・サービス   事業の系統図は以下のとおりです。

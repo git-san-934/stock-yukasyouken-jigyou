@@ -1,0 +1,13 @@
+# 阪和興業株式会社 事業の内容
+
+> 出典: 有価証券報告書 (EDINET 書類ID S100YED6) / 対象期間 2025-04-01〜2026-03-31
+
+３ 【事業の内容】当グループは、当社、子会社107社及び関連会社37社で構成され、鉄鋼を中心にプライマリーメタル、リサイクルメタル、食品、エネルギー・生活資材、住宅資材及び機械等各種商品の販売を主たる事業とし、さらに鋼材加工及びリサイクル金属加工等の事業活動も行っております。当グループは、販路開拓に積極的に取り組んでおり、国内外にわたり営業拠点を充実させております。なお、当グループの事業に係わる位置付け及びセグメントとの関連は、次のとおりであります。また、当連結会計年度より、報告セグメントの区分を変更しております。詳細は、「第５ [経理の状況] １ [連結財務諸表等] (1) [連結財務諸表] [注記事項]（セグメント情報等）」をご参照ください。 セグメントの名称 主な取扱商品またはサービスの内容主要な関係会社名鉄鋼事業 主な取扱商品は、条鋼、建設工事、鋼板、特殊鋼、線材及び鋼管であります。また、加工及び保管等を行っております。国内◎阪和エンジニアリング㈱◎阪和エコスチール㈱◎阪和流通センター東京㈱◎阪和流通センター大阪㈱◎阪和流通センター名古屋㈱◎阪和スチールサービス㈱◎廣内スチール㈱◎㈱ダイサン◎福岡鋼業㈱◎三栄金属㈱◎田中鉄鋼販売㈱◎北陸コラム㈱◎㈱トーハンスチール◎ジャパンライフ㈱◎すばるスチール㈱◎ダイコー小和野㈱◎亀井鐵鋼㈱◎大鋼産業㈱◎阪和ダイサン㈱◎㈱出雲テック◎鉄建工業㈱◎太洋鋼材㈱◎㈱松岡鋼材◎㈱カネキ◎MS日吉鋼材㈱◎山陽鋼材㈱〇HKGトレーディング㈱〇協和スチール㈱〇協和運輸㈱〇㈱建鋼社〇永和金属㈱〇東邦金属㈱◇ダイサン物流㈱◆近江産業㈱◆ステンレスパイプ工業㈱◆メタルテック㈱◆㈱富士昭サンマテック◆㈱東京富士昭◆三沢興産㈱◆近江テクノメタル㈱●㈱サンセイテック海外◎HANWA STEEL SERVICE MEXICANA, S.A. DE C.V.◎SAN DIEGO VISTA STEEL SERVICE CORP.◎PT. HANWA STEEL SERVICE INDONESIA◎HANWA STEEL CENTRE (M) SDN. BHD.◎HANWA STEEL SERVICE (THAILAND) CO., LTD.◎阪和鋼板加工(東莞)有限公司◎長富不銹鋼中心(蘇州)有限公司◎HANWA SMC STEEL SERVICE HA NOI CO., LTD.◆SOHBI CRAFT POLAND SP. Z O.O.◆SENDO STEEL PIPE JOINT VENTURE CO., LTD.◆SOHBI KOHGEI (PHILS.), INC.◆SMC TOAMI LLC.◆HANWA FELLOWS ENGINEERING (THAILAND) CO., LTD.◆鈴木住電鋼線製品(広州)有限公司◆NST SAIGON COIL CENTER CO., LTD.◆SMC TRADING INVESTMENT JSC.●PCM PROCESSING (THAILAND) LTD.プライマリーメタル事業 主な取扱商品は、ニッケル、クロム、シリコン、マンガン、合金鉄、ステンレス母材、高機能材及び鉄屑等冷鉄源であります。国内◎日本南アフリカクロム㈱ 海外◆SAMANCOR CHROME HOLDINGS PROPRIETARY LTD. リサイクルメタル事業 主な取扱商品は、アルミニウム、銅、亜鉛、チタン、ニッケル等のリサイクル原料及び貴金属であります。国内◎昭和メタル㈱◎日興金属㈱◎正起金属加工㈱◇阪和メタルズ㈱海外◎PT. HANWA ROYAL METALS◇SIAM HANWA CO., LTD.食品事業 主な取扱商品は、水産物及び畜産物であります。国内◎ハンワフーズ㈱◎㈱マルゴ福山水産◎丸本本間水産㈱◎東日本フーズ㈱〇㈱丸イ佐藤海産〇㈱丸イホールディングス海外◎SEATTLE SHRIMP & SEAFOOD COMPANY, INC.◎HANWA CANADA CORP.エネルギー・生活資材事業 主な取扱商品は、石油製品、工業薬品、化学品及びバイオマス・リサイクル燃料であります。国内◎トーヨーエナジー㈱◎西部サービス㈱◎㈲アルファフォルム◇ティーエスオイルターミナル㈱◇東谷石油㈱海外●PT.BIOMASA JAYA ABADI 海外販売子会社 海外の主要な拠点において当社と同様に多種多様な商品の売買を行っております。 海外◎HANWA SINGAPORE (PRIVATE) LTD.◎HANWA AMERICAN CORP.◎HANWA THAILAND CO., LTD.◎HANWA METALS (THAILAND) CO., LTD.◎HANWA VIETNAM CO., LTD.◎阪和(香港)有限公司◎HANWA MEXICANA, S.A. DE C.V.◎HANWA UK LTD.◎HANWA (MALAYSIA) SDN. BHD.◎広州阪和貿易有限公司◎HANWA ITALIA S.R.L.◎阪和(上海)管理有限公司◎台湾阪和興業股份有限公司◎HANWA EUROPE B.V.◎PT. HANWA INDONESIA◇HANWA MIDDLE EAST FZE◇阪和商貿(大連)有限公司◇HANWA (KOREA) CO., LTD.◇阪和商貿(青島)有限公司◇HANWA TURKEY ITHALAT IHRACAT VETICARET LTD. SIRKETI◇HANWA MIDDLE EAST STEEL TRADING L.L.C◆COSMOSTEEL HOLDINGS PTE. LTD.◆江陰市暁達金属製品製造股份有限公司◆PT. GARUDA YAMATO STEELその他 主な取扱商品は、住宅資材及び機械であります。国内◎シンクス㈱◎㈱阪和アルファビジネス海外◎HANWA REINSURANCE CORP.  ◎連結子会社
+
+〇非連結子会社
+
+◇持分法適用非連結子会社
+
+◆持分法適用関連会社
+
+●関連会社

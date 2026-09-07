@@ -11,6 +11,8 @@ import argparse
 import csv
 import io
 import json
+import shutil
+import time
 import zipfile
 from pathlib import Path
 
@@ -33,11 +35,32 @@ META_ELEMENTS = {
 }
 
 
-def _ensure_csv_zip(doc_id: str) -> Path:
+def _ensure_csv_zip(doc_id: str, *, retries: int = 3) -> Path:
     zip_path = CACHE / "docs" / doc_id / "csv.zip"
-    if not zip_path.exists():
-        download_document(doc_id, 5, zip_path)
-    return zip_path
+    if zip_path.exists() and zipfile.is_zipfile(zip_path):
+        return zip_path
+    if zip_path.exists():  # 壊れた/エラー応答のキャッシュは捨てて取り直す
+        zip_path.unlink()
+
+    head = b""
+    for attempt in range(retries):
+        try:
+            download_document(doc_id, 5, zip_path)
+        except Exception as err:  # 通信エラーもリトライ対象
+            head = str(err).encode()
+            if attempt < retries - 1:
+                time.sleep(2 * (attempt + 1))
+                continue
+            raise SystemExit(f"CSV(type=5) の取得に失敗しました: {err}")
+        if zipfile.is_zipfile(zip_path):
+            return zip_path
+        head = zip_path.read_bytes()[:200]
+        zip_path.unlink(missing_ok=True)
+        if b'"status": "404"' in head or b'"status":"404"' in head:
+            break  # この書類に CSV は存在しない。リトライ無意味
+        time.sleep(2 * (attempt + 1))
+
+    raise SystemExit(f"CSV(type=5) が取得できませんでした（zip でない応答）: {head!r}")
 
 
 def _iter_csv_rows(zip_path: Path):
@@ -51,7 +74,7 @@ def _iter_csv_rows(zip_path: Path):
                 yield name, row
 
 
-def extract(doc_id: str) -> dict:
+def extract(doc_id: str, *, drop_csv: bool = False) -> dict:
     zip_path = _ensure_csv_zip(doc_id)
 
     meta: dict[str, str] = {"doc_id": doc_id}
@@ -91,6 +114,9 @@ def extract(doc_id: str) -> dict:
     meta_json.write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+
+    if drop_csv:
+        shutil.rmtree(zip_path.parent, ignore_errors=True)
 
     return {"out_dir": str(out_dir), "meta": meta}
 

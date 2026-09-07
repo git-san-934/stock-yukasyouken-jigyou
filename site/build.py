@@ -54,8 +54,23 @@ INDEX_JS = """
 const box = document.getElementById('q');
 const list = document.getElementById('list');
 const count = document.getElementById('count');
-let data = [];
-fetch('search.json').then(r => r.json()).then(d => { data = d; render(''); });
+const note = document.getElementById('note');
+let data = [];          // [{code,name,snip}]  … 軽い一覧（即表示）
+let bodies = null;       // {code: 本文}        … 本文検索用（初回検索時に遅延読込）
+let bodiesLoading = false;
+const MAX_ROWS = 300;
+
+fetch('index.json').then(r => r.json()).then(d => { data = d; render(''); });
+
+function loadBodies(){
+  if (bodies || bodiesLoading) return;
+  bodiesLoading = true;
+  note.textContent = '本文検索データを読み込み中…';
+  fetch('bodies.json').then(r => r.json()).then(d => {
+    bodies = d; bodiesLoading = false; note.textContent = '';
+    render(box.value);
+  }).catch(() => { bodiesLoading = false; note.textContent = '本文データの読み込みに失敗しました。'; });
+}
 function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function hl(text, term){
   if (!term) return esc(text);
@@ -70,19 +85,22 @@ function hl(text, term){
 }
 function render(term){
   term = term.trim().toLowerCase();
-  const hits = data.filter(c =>
-    !term ||
-    c.name.toLowerCase().includes(term) ||
-    c.code.toLowerCase().includes(term) ||
-    c.body.toLowerCase().includes(term));
-  count.textContent = hits.length + ' 件';
-  list.innerHTML = hits.map(c => {
+  if (term) loadBodies();
+  const hits = data.filter(c => {
+    if (!term) return true;
+    if (c.name.toLowerCase().includes(term) || c.code.toLowerCase().includes(term)) return true;
+    const body = bodies && bodies[c.code];
+    return body ? body.toLowerCase().includes(term) : false;
+  });
+  count.textContent = hits.length + ' 件' + (hits.length > MAX_ROWS ? `（先頭 ${MAX_ROWS} 件を表示）` : '');
+  list.innerHTML = hits.slice(0, MAX_ROWS).map(c => {
+    const body = (bodies && bodies[c.code]) || c.snip;
     let snip = '';
     if (term){
-      const i = c.body.toLowerCase().indexOf(term);
-      if (i >= 0) snip = (i>40?'…':'') + c.body.slice(Math.max(0,i-40), i+80) + '…';
+      const i = body.toLowerCase().indexOf(term);
+      if (i >= 0) snip = (i>40?'…':'') + body.slice(Math.max(0,i-40), i+80) + '…';
     }
-    if (!snip) snip = c.body.slice(0, 90) + '…';
+    if (!snip) snip = body.slice(0, 90) + '…';
     const q = term ? '?q=' + encodeURIComponent(term) : '';
     return `<a class="card" href="companies/${encodeURIComponent(c.code)}.html${q}">
       <div class="code">${esc(c.code)}</div>
@@ -174,14 +192,19 @@ def build() -> None:
     companies = load_companies()
 
     # 検索インデックス（本文からは出典行を除いた素のテキスト）
-    search = []
+    #   index.json  … 会社名/コード/抜粋のみ。軽いので初回に読み込む。
+    #   bodies.json … 全文。本文検索時だけ遅延読込（Pages の gzip 転送に任せる）。
+    index, bodies = [], {}
     for c in companies:
         body_lines = [ln for ln in c["business_md"].splitlines()
                       if not ln.startswith(("#", ">"))]
         body = " ".join(body_lines).strip()
-        search.append({"code": c["code"], "name": c["name"], "body": body})
-    (DOCS / "search.json").write_text(
-        json.dumps(search, ensure_ascii=False), encoding="utf-8")
+        index.append({"code": c["code"], "name": c["name"], "snip": body[:120]})
+        bodies[c["code"]] = body
+    (DOCS / "index.json").write_text(
+        json.dumps(index, ensure_ascii=False), encoding="utf-8")
+    (DOCS / "bodies.json").write_text(
+        json.dumps(bodies, ensure_ascii=False), encoding="utf-8")
 
     # 一覧ページ
     index_body = (
@@ -189,6 +212,7 @@ def build() -> None:
         f"<div class=\"sub\">EDINET の有価証券報告書から「事業の内容」を抽出。"
         f"<a href=\"{PORTAL_URL}\">ポータルへ戻る</a></div>"
         "<input id=\"q\" type=\"search\" placeholder=\"会社名・証券コード・本文で検索\" autofocus>"
+        "<div id=\"note\" class=\"count\"></div>"
         "<div id=\"count\" class=\"count\"></div><div id=\"list\"></div>"
         f"<script>{INDEX_JS}</script>"
     )

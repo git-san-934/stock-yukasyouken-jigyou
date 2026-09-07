@@ -23,6 +23,16 @@ def _existing_doc_id(seccode: str) -> str | None:
     return None
 
 
+def run_doc(seccode: str, doc_id: str, *, drop_csv: bool = False) -> dict | None:
+    """docID を直接渡す版（書類一覧の再スキャンを省く）。list_targets 用。"""
+    if _existing_doc_id(seccode) == doc_id:
+        print(f"      {doc_id} は取得済み。更新なし。")
+        return None
+    result = extract(doc_id, drop_csv=drop_csv)
+    print(f"      書き出し: {result['out_dir']}")
+    return result
+
+
 def run(seccode: str, *, days: int = 500, allow_no_update: bool = True) -> dict | None:
     known = _existing_doc_id(seccode)
     docs = list_yuho(seccode, days=days)

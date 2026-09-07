@@ -19,3 +19,6 @@ Thumbs.db
 
 # 生成物（プレビュー、ローカル確認用）
 preview.html
+
+# 生成サイト（CI でビルドして Pages へ。リポジトリには置かない）
+docs/

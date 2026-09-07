@@ -1,0 +1,9 @@
+# 河西工業株式会社 事業の内容
+
+> 出典: 有価証券報告書 (EDINET 書類ID S100YNJP) / 対象期間 2025-04-01〜2026-03-31
+
+３ 【事業の内容】当社グループは、当連結会計年度末現在、当社、子会社14社、関連会社４社で構成され、自動車内装部品の製造販売を主な事業内容としております。当社グループの事業に係る位置付け及びセグメントとの関連は、次のとおりであり、セグメントと同一の区分であります。 （日本）日本においては、子会社である河西工業ジャパン㈱は当社からの部品等の支給を受けて製造しており、そのほとんどを当社を通して販売先OEMに納入しております。エスケイ工業㈱は自動車用天井素材の製造を行う関連会社であります。河西テクノ㈱は自動車内装部品設計開発子会社であり、河西サポートサービス㈱はグループ各社のための保険代理業や業務請負等を行っております。 （北米）北米においては、米国のKASAI NORTH AMERICA, INC.は自動車内装部品を製造し、Nissan North America, INC.、Honda Canada Inc.、Honda Manufacturing of Alabama, LLC、Honda Development and Manufacturing of America, LLC、Subaru of Indiana Automotive, Inc.、Toyota Motor Manufacturing, Indiana, Inc.、Toyota Motor Manufacturing, Mississippi, Inc.、Volkswagen Group of America Chattanooga Operations, LLC、General Motors Corporation等向けに販売しております。メキシコのKASAI MEXICANA S.A. DE C.V.は、Nissan Mexicana,S.A. de C.V.、Cooperation Manufacturing Plant Aguascalientes、Honda de Mexico S.A. de C.V.、Mazda de Mexico Vehicle Operation S.A. de C.V.、Toyota Motor Manufacturing, Indiana, Inc.、Toyota Motor Manufacturing, Mississippi, Inc.等向けに製造販売しております。 （欧州）欧州においては、英国のKASAI UK LTDは、Nissan Motor Manufacturing (UK) Ltd.、JAGUAR LAND ROVER AUTOMOTIVE PLC向けに製造販売しております。 （アジア）アジアにおいては、中国の広州河西汽車内飾件㈲は、東風汽車有限公司、日産（中国）投資有限公司等向けに製造販売しております。開封河西汽車飾件㈲は、同国において自動車内装部品の製造を行っております。また、東風河西（大連）汽車飾件系統㈲は、東風汽車有限公司東風日産乗用車公司等向けに製造販売しております。東風河西（武漢）頂飾系統㈲は、東風本田汽車有限公司向けに製造販売しております。東風河西（襄陽）汽車飾件系統㈲は、東風日産襄陽工場向けに製造販売している当社の関連会社であります。台湾の穎西工業股份㈲は、台湾裕隆汽車製造股份㈲等向けに製造販売している当社の関連会社であります。タイのKASAI TECK SEE CO.,LTD.は、当社及びHonda Automobile (Thailand) Co.,Ltd.及びNissan Motor (Thailand) Co.,Ltd.等向けに製造販売をしております。インドネシアのPT KASAI TECK SEE INDONESIAは、PT. Mitsubishi Motors Krama Yudha Indonesia、PT. Honda Prospect Motor等向けに製造販売しております。マレーシアのKASAI TECK SEE (MALAYSIA) SDN. BHD.は、自動車内装部品の製造を行う当社の関連会社であります。  事業系統図は次のとおりであります。(注) １
+
+◎ は連結子会社、○ は持分法適用関連会社を示しております。 ２
+
+連結の範囲に含めております特別目的会社１社は、上記の表に含めておりません。

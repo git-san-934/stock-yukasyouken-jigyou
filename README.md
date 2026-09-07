@@ -8,20 +8,22 @@ EDINET の有価証券報告書から「事業の内容」を抽出し、GitHub 
 ## 仕組み
 
 ```
-companies.txt  対象銘柄（証券コード）
-   │
-   ▼  scripts/update_all.py
-EDINET API v2 ──► 書類一覧を日付でさかのぼり、対象の最新「有価証券報告書」を特定
-   │             （documents.json の secCode で直接絞り込み）
+scripts/list_targets.py
+EDINET API v2 ──► 書類一覧を約500日さかのぼり、有価証券報告書(docTypeCode=120)で
+   │             証券コードを持つ提出者を全部収集（≒4,000社） → cache/_targets.json
+   ▼  scripts/update_all.py --all
+   │  各社の最新 docID について（既取得ぶんはスキップ）
    ▼  書類取得API type=5 (CSV)
 XBRL CSV ──► jpcrp_cor:DescriptionOfBusinessTextBlock を取り出し HTML→テキスト化
    │
-   ▼  data/<証券コード>/{business.md, meta.json}
+   ▼  data/<証券コード>/{business.md, meta.json}   ← リポジトリにコミット
    ▼  site/build.py
-docs/  index.html（検索）/ companies/<code>.html / search.json
-   │
+docs/  index.html / companies/<code>.html / index.json（軽い一覧）/ bodies.json（本文）
+   │   ← docs/ はコミットせず GitHub Actions でビルドして Pages へ
    ▼  GitHub Pages で公開 → ポータルサイトにリンク追加
 ```
+
+`companies.txt` の手動メンテは不要（除外指定にのみ使う）。
 
 LLM もサーバーも使わない。完全無料。
 
@@ -40,21 +42,26 @@ LLM もサーバーも使わない。完全無料。
 ## 使い方（ローカル）
 
 ```bash
+# 対象銘柄を EDINET から収集（cache/_targets.json）
+python scripts/list_targets.py
+
+# 全提出者ぶんを取り込む（初回は数千件・2〜4時間。中断しても再実行で続きから）
+python scripts/update_all.py --all --drop-csv
+#   --limit 300 --offset 0   … 分割実行したいとき
+#   --use-cached-manifest    … 収集済みリストを使い回す
+#   失敗した銘柄は cache/_failures.json に記録される
+
 # 1 銘柄だけ試す
 python scripts/run_pipeline.py 285A
 
-# companies.txt の全銘柄を更新（既存銘柄は直近 90 日だけ確認）
-python scripts/update_all.py
-python scripts/update_all.py --full    # 全銘柄フルスキャン
-
-# サイト生成（docs/ に出力）
+# サイト生成（docs/ に出力・コミットはしない）
 python site/build.py
 
 # ローカル確認
 python -m http.server -d docs 8000
 ```
 
-銘柄を増やすには `companies.txt` に証券コードを 1 行ずつ追加。
+`companies.txt` は通常編集不要。除外したい銘柄は行頭に `-` を付ける（例 `-1234`）。
 
 ## GitHub Pages 公開手順（初回のみ）
 
@@ -69,15 +76,16 @@ python -m http.server -d docs 8000
 | パス | 役割 |
 |---|---|
 | `scripts/edinet_common.py` | EDINET API 呼び出し・書類一覧キャッシュ |
-| `scripts/find_doc.py` | 証券コード（secCode）→ 最新の有報 docID |
+| `scripts/list_targets.py` | 書類一覧をさかのぼり有報提出者を全収集 → `cache/_targets.json` |
+| `scripts/find_doc.py` | 証券コード（secCode）→ 最新の有報 docID（単発用） |
 | `scripts/extract_business.py` | CSV から「事業の内容」を抽出 |
 | `scripts/htmltext.py` | テキストブロック(HTML断片)の簡易テキスト化 |
 | `scripts/run_pipeline.py` | 1 銘柄分の一連処理 |
-| `scripts/update_all.py` | `companies.txt` 全銘柄の更新 |
+| `scripts/update_all.py` | `--all` で全提出者、無指定で `companies.txt` を更新 |
 | `site/build.py` | 静的サイト生成 |
-| `data/` | 抽出結果（コミット対象） |
-| `docs/` | 生成された公開サイト（コミット対象） |
-| `cache/` | EDINET ダウンロードキャッシュ（Git 管理外） |
+| `data/` | 抽出結果（**コミット対象**） |
+| `docs/` | 生成された公開サイト（コミットしない・CI でビルド） |
+| `cache/` | EDINET ダウンロードキャッシュ・対象リスト（Git 管理外） |
 
 ## 今後の検討（開発.md ③(2)「それ以外は相談」）
 
