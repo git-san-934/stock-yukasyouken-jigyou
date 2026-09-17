@@ -132,28 +132,44 @@ const csvBtn = document.getElementById('csvBtn');
 function csvField(s){
   return '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
 }
+const CSV_CHUNK_SIZE = 1000;
 function exportCsv(){
   const prevLabel = csvBtn.textContent;
   csvBtn.disabled = true;
   csvBtn.textContent = '準備中…';
   ensureBodies().catch(() => {}).then(() => {
-    const rows = [['証券コード', '会社名', '事業の内容'].map(csvField).join(',')];
-    lastHits.forEach(c => {
-      const body = (bodies && bodies[c.code]) || c.snip;
-      rows.push([c.code, c.name, body].map(csvField).join(','));
-    });
-    const csv = '\\uFEFF' + rows.join('\\r\\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = '事業の内容_' + new Date().toISOString().slice(0, 10) + '.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    csvBtn.disabled = false;
-    csvBtn.textContent = prevLabel;
+    const header = ['証券コード', '会社名', '事業の内容'].map(csvField).join(',');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const chunkCount = Math.max(1, Math.ceil(lastHits.length / CSV_CHUNK_SIZE));
+    function downloadChunk(i){
+      const rows = [header];
+      lastHits.slice(i * CSV_CHUNK_SIZE, (i + 1) * CSV_CHUNK_SIZE).forEach(c => {
+        const body = (bodies && bodies[c.code]) || c.snip;
+        rows.push([c.code, c.name, body].map(csvField).join(','));
+      });
+      const csv = '\\uFEFF' + rows.join('\\r\\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const suffix = chunkCount > 1 ? '_' + (i + 1) + '-' + chunkCount : '';
+      a.download = '事業の内容_' + dateStr + suffix + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+    let i = 0;
+    (function next(){
+      if (i >= chunkCount){
+        csvBtn.disabled = false;
+        csvBtn.textContent = prevLabel;
+        return;
+      }
+      downloadChunk(i);
+      i++;
+      setTimeout(next, 300);
+    })();
   });
 }
 csvBtn.addEventListener('click', exportCsv);
