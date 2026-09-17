@@ -48,6 +48,11 @@ mark.active { background: #ff8c1a; color: #fff; box-shadow: 0 0 0 2px #ff8c1a; }
 #mnav { display: inline; white-space: nowrap; }
 #mnav button { font: inherit; padding: 1px 8px; margin-left: 4px; cursor: pointer;
   border: 1px solid #bbb; border-radius: 6px; background: transparent; color: inherit; }
+.toolbar { margin-top: 10px; }
+.btn { font: inherit; padding: 7px 14px; cursor: pointer; border: 1px solid #bbb;
+  border-radius: 8px; background: transparent; color: inherit; }
+.btn:hover { border-color: #888; }
+.btn:disabled { opacity: .6; cursor: default; }
 """
 
 INDEX_JS = """
@@ -58,18 +63,25 @@ const note = document.getElementById('note');
 let data = [];          // [{code,name,snip}]  … 軽い一覧（即表示）
 let bodies = null;       // {code: 本文}        … 本文検索用（初回検索時に遅延読込）
 let bodiesLoading = false;
+let bodiesPromise = null;
+let lastHits = [];       // 直近の絞り込み結果（表示件数の上限は含めない）
 const MAX_ROWS = 300;
 
 fetch('index.json').then(r => r.json()).then(d => { data = d; render(''); });
 
+function ensureBodies(){
+  if (!bodiesPromise){
+    bodiesPromise = fetch('bodies.json').then(r => r.json()).then(d => { bodies = d; return d; })
+      .catch((err) => { bodiesPromise = null; throw err; });
+  }
+  return bodiesPromise;
+}
 function loadBodies(){
   if (bodies || bodiesLoading) return;
   bodiesLoading = true;
   note.textContent = '本文検索データを読み込み中…';
-  fetch('bodies.json').then(r => r.json()).then(d => {
-    bodies = d; bodiesLoading = false; note.textContent = '';
-    render(box.value);
-  }).catch(() => { bodiesLoading = false; note.textContent = '本文データの読み込みに失敗しました。'; });
+  ensureBodies().then(() => { bodiesLoading = false; note.textContent = ''; render(box.value); })
+    .catch(() => { bodiesLoading = false; note.textContent = '本文データの読み込みに失敗しました。'; });
 }
 function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function escRe(s){ return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
@@ -112,8 +124,39 @@ function render(q){
       <div class="name">${hl(c.name, terms)}</div>
       <div class="snip">${hl(snip, terms)}</div></a>`;
   }).join('');
+  lastHits = hits;
 }
 box.addEventListener('input', () => render(box.value));
+
+const csvBtn = document.getElementById('csvBtn');
+function csvField(s){
+  return '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+}
+function exportCsv(){
+  const prevLabel = csvBtn.textContent;
+  csvBtn.disabled = true;
+  csvBtn.textContent = '準備中…';
+  ensureBodies().catch(() => {}).then(() => {
+    const rows = [['証券コード', '会社名', '事業の内容'].map(csvField).join(',')];
+    lastHits.forEach(c => {
+      const body = (bodies && bodies[c.code]) || c.snip;
+      rows.push([c.code, c.name, body].map(csvField).join(','));
+    });
+    const csv = '\\uFEFF' + rows.join('\\r\\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '事業の内容_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    csvBtn.disabled = false;
+    csvBtn.textContent = prevLabel;
+  });
+}
+csvBtn.addEventListener('click', exportCsv);
 """
 
 # 会社ページ用: ?q=... が付いていたら本文中の一致語（複数可）をハイライトして辿れるようにする
@@ -220,6 +263,8 @@ def build() -> None:
         f"<a href=\"{PORTAL_URL}\">ポータルへ戻る</a></div>"
         "<input id=\"q\" type=\"search\" "
         "placeholder=\"会社名・証券コード・本文で検索（スペース区切りで AND 検索）\" autofocus>"
+        "<div class=\"toolbar\"><button id=\"csvBtn\" type=\"button\" class=\"btn\">"
+        "CSVで出力</button></div>"
         "<div id=\"note\" class=\"count\"></div>"
         "<div id=\"count\" class=\"count\"></div><div id=\"list\"></div>"
         f"<script>{INDEX_JS}</script>"
