@@ -148,12 +148,12 @@ function exportCsv(){
         rows.push([c.code, c.name, body].map(csvField).join(','));
       });
       const csv = '\\uFEFF' + rows.join('\\r\\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const blob = new Blob([csv], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       const suffix = chunkCount > 1 ? '_' + (i + 1) + '-' + chunkCount : '';
-      a.download = '事業の内容_' + dateStr + suffix + '.csv';
+      a.download = '事業の内容_' + dateStr + suffix + '.txt';
       document.body.appendChild(a);
       a.click();
       a.remove();
