@@ -212,6 +212,23 @@ def compute(rec, prices):
             break
     meta["sales"] = summary_sales(d, False) or summary_sales(d, True)
 
+    # 営業利益率（連結を優先、なければ単体）。銀行など営業利益のない業種は空欄
+    for nc in (False, True):
+        sfx = "_NonConsolidatedMember" if nc else ""
+        op, *_ = first(d, [("jppfs_cor:OperatingIncome", "CurrentYearDuration" + sfx),
+                           ("jpigp_cor:OperatingProfitLossIFRS", "CurrentYearDuration" + sfx)])
+        sales, *_ = first(d, [("jppfs_cor:NetSales", "CurrentYearDuration" + sfx),
+                              ("jpigp_cor:RevenueIFRS", "CurrentYearDuration" + sfx),
+                              ("jpigp_cor:NetSalesIFRS", "CurrentYearDuration" + sfx)])
+        sales = sales or summary_sales(d, nc)
+        # 銀行・保険は OperatingIncome が「経常収益」を指すので、9割超は使わない
+        limit = 0.9 if "gross_margin" in meta else 0.5  # 売上総利益のない金融業は特に紛れやすい
+        if op is not None and sales and -5 <= op / sales <= limit:
+            meta["op_margin"] = op / sales
+            break
+        if not nc and summary_sales(d, False):
+            break  # 連結決算の会社で単体の数字は使わない（持株会社の単体は意味が違う）
+
     cash, el, ctx = first(d, [
         ("jppfs_cor:CashAndDeposits", "CurrentYearInstant"),
         ("jpigp_cor:CashAndCashEquivalentsIFRS", "CurrentYearInstant"),

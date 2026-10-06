@@ -6,6 +6,10 @@ markets = {}
 try:
     j = pd.read_csv(jpx_path, dtype=str)
     markets = dict(zip(j["コード"].str.strip(), j["市場・商品区分"]))
+    sectors = dict(zip(j["コード"].str.strip(), j["33業種区分"]))
+    # 銀行・保険の「営業利益」は経常収益などを指すため、営業利益率は出さない
+    fin = m["code"].map(sectors).isin(["銀行業", "保険業"])
+    m.loc[fin, "op_margin"] = None
 except Exception as e:
     print("no jpx", e)
 m["market"] = m["code"].map(markets)
@@ -21,7 +25,7 @@ for _, r in m.iterrows():
         "f": v(r.get("float_ratio"), 5),
         "bb": v(r.get("bd_big"), 4), "bf": v(r.get("bd_fund"), 4),
         "bx": v(r.get("bd_foreign"), 4), "bo": v(r.get("bd_other"), 4), "b": v(r.get("fixed_B"), 4), "a": v(r.get("fixed_A"), 4),
-        "g": v(r.get("gross_margin"), 4),
+        "g": v(r.get("gross_margin"), 4), "om": v(r.get("op_margin"), 4),
         "cash": v(r.get("cash") / 1e6 if pd.notna(r.get("cash")) else None, 0),
         "y": v(r.get("div_yield"), 4), "yc": 1 if r.get("yield_check") == 1 else 0, "d": v(r.get("dps"), 2),
         "bs": 1 if str(r.get("buyback_status", "")).startswith(("取締役会", "株主総会")) else 0,
