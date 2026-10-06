@@ -21,7 +21,7 @@ for _, r in m.iterrows():
         "b": v(r.get("fixed_B"), 4), "a": v(r.get("fixed_A"), 4),
         "g": v(r.get("gross_margin"), 4),
         "cash": v(r.get("cash") / 1e6 if pd.notna(r.get("cash")) else None, 0),
-        "y": v(r.get("div_yield"), 4), "d": v(r.get("dps"), 2),
+        "y": v(r.get("div_yield"), 4), "yc": 1 if r.get("yield_check") == 1 else 0, "d": v(r.get("dps"), 2),
         "bs": 1 if str(r.get("buyback_status", "")).startswith(("取締役会", "株主総会")) else 0,
         "ba": v(r.get("buyback_amount") / 1e6 if pd.notna(r.get("buyback_amount")) else None, 0),
         "t": v(r.get("treasury_ratio"), 4), "top1": v(r.get("top1")),

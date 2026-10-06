@@ -167,11 +167,36 @@ def compute(rec, prices):
     meta["payout"], *_ = first(d, [
         ("jpcrp_cor:PayoutRatioSummaryOfBusinessResults", "CurrentYearDuration_NonConsolidatedMember"),
         ("jpcrp_cor:PayoutRatioSummaryOfBusinessResults", "CurrentYearDuration")])
+    # 決算期末の株価の目安 = PER × EPS（株式分割の検出に使う）
+    fy_price = None
+    for sfx in ("", "IFRS", "USGAAP"):
+        for ctx in ("CurrentYearDuration", "CurrentYearDuration_NonConsolidatedMember"):
+            per = num(d.get(f"jpcrp_cor:PriceEarningsRatio{sfx}SummaryOfBusinessResults", {}).get(ctx, ""))
+            eps = num(d.get(f"jpcrp_cor:BasicEarningsLossPerShare{sfx}SummaryOfBusinessResults", {}).get(ctx, ""))
+            if per and eps and per > 0 and eps > 0:
+                fy_price = per * eps
+                break
+        if fy_price:
+            break
     price = prices.get(rec["code"])
     if price:
         meta["price"], meta["price_date"] = price
         if dps is not None:
-            meta["div_yield"] = dps / price[0]
+            adj = dps
+            if fy_price:
+                r = fy_price / price[0]
+                if r > 1.8:  # 決算期後の株式分割とみなし、分割比率で配当を割る
+                    factor = min((2, 3, 4, 5, 10, 20, 50, 100), key=lambda f: abs(r / f - 1))
+                    if 0.6 < r / factor < 1.6:
+                        adj = dps / factor
+                        meta["split_adj"] = factor
+                    else:
+                        adj = None
+            if adj is not None:
+                meta["div_yield"] = adj / price[0]
+                # 期中の株式分割や特別配当でゆがみやすいので、高すぎる利回りは要確認にする
+                if meta["div_yield"] > 0.08 or "split_adj" in meta:
+                    meta["yield_check"] = 1
 
     buy, *_ = first(d, [
         ("jppfs_cor:PurchaseOfTreasuryStockFinCF", "CurrentYearDuration"),
