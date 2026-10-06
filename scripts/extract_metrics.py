@@ -26,7 +26,7 @@ OUT = ROOT / "screen"
 KEEP = re.compile(
     r"MajorShareholder|ShareholdingRatio|NumberOfSharesHeld|TreasuryShare|TreasuryStock"
     r"|Officer|IssuedShares|SummaryOfBusinessResults|GrossProfit|NetSales|Revenue"
-    r"|CashAndDeposits|CashAndCashEquivalents|Dividend|ShareholderCategory|Shareholders"
+    r"|CashAndDeposits|CashAndCashEquivalents|OperatingIncome|OperatingProfit|Dividend|ShareholderCategory|Shareholders"
     r"|PercentageOfShareholdings|SharesWithFullVotingRights|VotingRights|SecurityCodeDEI|FilerName|FiscalYear"
     r"|AccountingStandardsDEI|WhetherConsolidated",
     re.I,
