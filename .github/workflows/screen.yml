@@ -1,0 +1,48 @@
+name: screen
+
+# claude/stock-screen ブランチで screen/run.json を更新すると動く
+on:
+  push:
+    branches: [claude/stock-screen]
+    paths: [screen/run.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt yfinance
+      - name: 有報から数値を抽出
+        env:
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+        run: |
+          cd scripts
+          DUMP=$(jq -r '.dump // [] | join(" ")' ../screen/run.json)
+          LIMIT=$(jq -r '.limit // empty' ../screen/run.json)
+          ALL=$(jq -r '.all // false' ../screen/run.json)
+          [ -n "$DUMP" ] && python extract_metrics.py --dump $DUMP
+          if [ "$ALL" = "true" ]; then
+            python extract_metrics.py --all --workers 4 ${LIMIT:+--limit $LIMIT}
+          fi
+      - name: 株価を取得
+        continue-on-error: true
+        run: |
+          LIMIT=$(jq -r '.limit // empty' screen/run.json)
+          if [ "$(jq -r '.prices // false' screen/run.json)" = "true" ]; then
+            cd scripts && python fetch_prices.py $LIMIT
+          fi
+      - name: 結果をコミット
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f screen
+          git diff --cached --quiet || git commit -m "chore: スクリーニング用データを更新"
+          git push
