@@ -18,7 +18,7 @@ rows = []
 for _, r in m.iterrows():
     rows.append({
         "c": r.code, "n": r["name"], "m": v(r.get("market")),
-        "b": v(r.get("fixed_B"), 4), "a": v(r.get("fixed_A"), 4),
+        "f": v(r.get("float_ratio"), 5), "b": v(r.get("fixed_B"), 4), "a": v(r.get("fixed_A"), 4),
         "g": v(r.get("gross_margin"), 4),
         "cash": v(r.get("cash") / 1e6 if pd.notna(r.get("cash")) else None, 0),
         "y": v(r.get("div_yield"), 4), "yc": 1 if r.get("yield_check") == 1 else 0, "d": v(r.get("dps"), 2),

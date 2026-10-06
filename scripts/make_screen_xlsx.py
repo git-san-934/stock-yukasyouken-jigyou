@@ -20,6 +20,7 @@ COLS = [
     ("code", "銘柄コード", None, 10),
     ("name", "銘柄名", None, 34),
     ("market", "市場", None, 18),
+    ("float_ratio", "浮動株割合", "0.0%", 12),
     ("fixed_B", "不動株割合（東証式近似）", "0.0%", 14),
     ("fixed_A", "特定株比率（四季報式）", "0.0%", 14),
     ("gross_margin", "粗利率", "0.0%", 10),
@@ -77,18 +78,24 @@ def sheet(wb, title, df, sort="fixed_B"):
 wb = Workbook()
 info = wb.active
 info.title = "説明"
-nB = sheet(wb, "抽出_不動株5%未満", m[m["fixed_B"] < 0.05])
+nF = sheet(wb, "抽出_浮動株5%未満", m[m["float_ratio"] < 0.05], "float_ratio")
+nB = sheet(wb, "参考_不動株5%未満", m[m["fixed_B"] < 0.05])
 nA = sheet(wb, "参考_特定株5%未満", m[m["fixed_A"] < 0.05], "fixed_A")
 sheet(wb, "全銘柄", m, "code")
 pmin = m["price_date"].dropna().min() if "price_date" in m else ""
 pmax = m["price_date"].dropna().max() if "price_date" in m else ""
 lines = [
-    ("東証銘柄抽出：不動株割合5%未満", True),
+    ("東証銘柄抽出：浮動株割合5%未満", True),
     (f"データ取得日：{fetched}", False),
     (f"対象：{len(m):,}社（東証プライム・スタンダード・グロース、直近の有価証券報告書がある会社）", False),
-    (f"抽出結果：不動株割合（東証式近似）5%未満 {nB}社 ／ 特定株比率（四季報式）5%未満 {nA}社", False),
+    (f"抽出結果：浮動株割合5%未満 {nF}社（参考：不動株割合（東証式近似）5%未満 {nB}社 ／ 特定株比率（四季報式）5%未満 {nA}社）", False),
     ("", False),
-    ("■ 不動株割合の定義（発行済株式総数に対する割合）", True),
+    ("■ 浮動株割合の定義", True),
+    ("・浮動株割合 ＝（全株式 − 大株主 − 投資信託など金融機関 − 外国人 − その他の法人など）÷ 全株式", False),
+    ("　有報「所有者別状況」の個人その他の割合（単元株ベース）から、自己株式、大株主上位10名のうちの個人、役員持株（上位10名に入らない分）を差し引いて計算。", False),
+    ("　大株主の個人は名前（漢字・ひらがなの氏名で、法人を示す語がないもの）で判定。資産管理会社経由の保有は「その他の法人」側に入ります。", False),
+    ("", False),
+    ("■ 不動株割合の定義（参考、発行済株式総数に対する割合）", True),
     ("・不動株割合（東証式近似）＝ 10%以上を持つ大株主 ＋ 役員持株 ＋ 自己株式等", False),
     ("　信託銀行の信託口・海外カストディアン名義（マスタートラスト、日本カストディ銀行、STATE STREET等）は投資家の預かり株なので固定株に数えていません。", False),
     ("　東証の流通株式の定義では銀行・保険・事業法人の政策保有株も非流通ですが、有報からは判別できないため含めていません（実際の不動株はこれより高めになります）。", False),
@@ -115,4 +122,4 @@ for i, (t, b) in enumerate(lines, 1):
         c.font = Font(bold=True, size=12 if i > 1 else 14)
 info.column_dimensions["A"].width = 130
 wb.save(out)
-print("saved", out, "B:", nB, "A:", nA, "total:", len(m))
+print("saved", out, "F:", nF, "B:", nB, "A:", nA, "total:", len(m))

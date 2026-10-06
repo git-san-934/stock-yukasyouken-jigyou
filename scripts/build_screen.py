@@ -27,6 +27,20 @@ CUSTODY = re.compile(
     r"J\.?\s*P\.?\s*MORGAN|NORTHERN\s*TRUST|SSBTC|NOMURA\s*PB|GOLDMAN|MORGAN\s*STANLEY", re.I)
 
 
+# 大株主のうち「個人その他」に入る日本の個人を見分ける: 漢字・ひらがなだけの名前で、
+# 法人・官庁を示す語を含まないもの（カタカナ・英字の名前は外国法人等の可能性が高いので除く）
+NOT_PERSON = re.compile(r"会社|銀行|信託|証券|保険|生命|共済|財団|社団|組合|基金|機構|協会|法人|大臣|政府|"
+                        r"持株会|従業員|興産|商事|産業|企画|事務所|[市県都府国省庁]$")
+PERSON = re.compile(r"^[\u4e00-\u9fff\u3040-\u309f々〆ヶ\s　]+$")
+
+
+def is_person(name: str) -> bool:
+    if re.search(r"[(（]株[)）]|[(（]有[)）]|㈱|㈲|公司", name):
+        return False
+    name = re.sub(r"[（(][^）)]*[）)]", "", name).strip()
+    return bool(PERSON.match(name)) and not NOT_PERSON.search(name)
+
+
 def num(v):
     try:
         return float(str(v).replace(",", ""))
@@ -131,6 +145,25 @@ def compute(rec, prices):
 
     pct = lambda el: num(d.get(el, {}).get("CurrentYearInstant_OrdinaryShareMember", ""))
     meta["individual_ratio"] = pct("jpcrp_cor:PercentageOfShareholdingsIndividualsAndOthers")
+
+    # ユーザー定義の浮動株 = 全株式 − 大株主 − 金融機関(投信等) − 外国人 − その他法人など
+    #   ≒ 所有者別状況の「個人その他」から、自己株式・大株主の個人・役員持株を除いたもの
+    units = lambda el: next((num(d.get(el, {}).get(c, "")) for c in
+                             ("CurrentYearInstant_OrdinaryShareMember", "CurrentYearInstant")
+                             if num(d.get(el, {}).get(c, "")) is not None), None)
+    u_ind = units("jpcrp_cor:NumberOfSharesHeldNumberOfUnitsIndividualsAndOthers")
+    u_tot = units("jpcrp_cor:NumberOfSharesHeldNumberOfUnitsTotal")
+    ind = u_ind / u_tot if u_ind is not None and u_tot else meta["individual_ratio"]
+    if ind is not None and issued:
+        outstanding_share = (issued - treasury) / issued
+        big_ind = sum(h[2] for h in holders if h[2] and is_person(h[0])) * outstanding_share
+        own, *_ = first(d, [("jpcrp_cor:NumberOfSharesHeldInOwnNameTreasurySharesEtc", "CurrentYearInstant"),
+                            ("jpcrp_cor:NumberOfSharesHeldInOwnNameTreasurySharesEtc", "CurrentYearInstant_Row1Member")])
+        own = treasury if own is None else own
+        if own / issued > ind:  # 自己株式を「個人その他」に含めていない会社
+            own = 0
+        meta["float_ratio"] = max(0.0, ind - own / issued - big_ind - off_A / issued)
+        meta["big_individual_ratio"] = big_ind
 
     # 粗利率（連結を優先、なければ単体）
     for nc in (False, True):
