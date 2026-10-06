@@ -27,7 +27,7 @@ KEEP = re.compile(
     r"MajorShareholder|ShareholdingRatio|NumberOfSharesHeld|TreasuryShare|TreasuryStock"
     r"|Officer|IssuedShares|SummaryOfBusinessResults|GrossProfit|NetSales|Revenue"
     r"|CashAndDeposits|CashAndCashEquivalents|Dividend|ShareholderCategory|Shareholders"
-    r"|SharesWithFullVotingRights|VotingRights|SecurityCodeDEI|FilerName|FiscalYear"
+    r"|PercentageOfShareholdings|SharesWithFullVotingRights|VotingRights|SecurityCodeDEI|FilerName|FiscalYear"
     r"|AccountingStandardsDEI|WhetherConsolidated",
     re.I,
 )
@@ -52,8 +52,8 @@ def collect(code: str, doc_id: str) -> dict:
         if not val or SKIP_CONTEXT.match(ctx):
             continue
         if el.endswith("TextBlock"):
-            if "TreasuryShare" in el or "TreasuryStock" in el:
-                out.append([el, ctx, val[:6000]])
+            if "TreasuryShare" in el or el.startswith("jpcrp_cor:AcquisitionsBy"):
+                out.append([el, ctx, val[:3000]])
             continue
         if KEEP.search(el):
             out.append([el, ctx, val[:200]])
