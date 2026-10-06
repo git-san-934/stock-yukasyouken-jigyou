@@ -88,10 +88,15 @@ def compute(rec, prices):
         sh = num(d.get("jpcrp_cor:NumberOfSharesHeld", {}).get(ctx, ""))
         ratio = num(d.get("jpcrp_cor:ShareholdingRatio", {}).get(ctx, ""))
         name = d.get("jpcrp_cor:NameMajorShareholders", {}).get(ctx, "")
-        if sh is not None:
-            holders.append((name, sh, ratio))
+        if sh is not None or ratio is not None:
+            # 株数の単位（千株など）を取り違えた報告があるので、割合があれば割合から株数を出す
+            if ratio is not None and issued:
+                sh = ratio * (issued - treasury)
+            if sh is not None:
+                holders.append((name, sh, ratio))
     top10 = sum(h[1] for h in holders)
-    big10 = sum(h[1] for h in holders if (h[2] or 0) >= 0.10 and not CUSTODY.search(h[0]))
+    big10 = sum(h[1] for h in holders
+                if (h[2] or 0) >= 0.10 and not CUSTODY.search(re.sub(r"[（(]常任代理人.*", "", h[0])))
 
     off_el = "jpcrp_cor:NumberOfSharesHeldOrdinarySharesInformationAboutDirectorsAndCorporateAuditors"
     each = [num(v) or 0 for c, v in d.get(off_el, {}).items()
@@ -102,14 +107,23 @@ def compute(rec, prices):
         each = [officers]
     # 大株主欄と役員欄の二重計上を避ける: 10位の株数以上を持つ役員は上位10名に、
     # 10%以上を持つ役員は B の大株主に既に含まれているとみなす
-    tenth = min((h[1] for h in holders), default=0) if len(holders) >= 10 else 0
+    if issued and officers > issued:  # 単位の取り違え（千株・百株）
+        for unit in (1000, 100):
+            if officers / unit <= issued:
+                each = [x / unit for x in each]
+                officers /= unit
+                break
+        else:
+            each, officers = [], 0
+    tenth = min((h[1] for h in holders), default=0)
     outstanding = (issued or 0) - treasury
     off_A = sum(x for x in each if x < tenth) if tenth else officers
+    cap = lambda x: min(x, 1.0)
     off_B = sum(x for x in each if not outstanding or x / outstanding < 0.10)
 
     if issued and holders:
-        meta["fixed_A"] = (top10 + off_A + treasury) / issued
-        meta["fixed_B"] = (big10 + off_B + treasury) / issued
+        meta["fixed_A"] = cap((top10 + off_A + treasury) / issued)
+        meta["fixed_B"] = cap((big10 + off_B + treasury) / issued)
     meta["top10_ratio"] = top10 / issued if issued and holders else None
     meta["treasury_ratio"] = treasury / issued if issued else None
     meta["officer_ratio"] = officers / issued if issued else None
@@ -127,7 +141,7 @@ def compute(rec, prices):
                               ("jpigp_cor:RevenueIFRS", "CurrentYearDuration" + sfx),
                               ("jpigp_cor:NetSalesIFRS", "CurrentYearDuration" + sfx)])
         sales = sales or summary_sales(d, nc)
-        if gp is not None and sales:
+        if gp is not None and sales and gp / sales <= 1:
             meta["gross_margin"] = gp / sales
             meta["gm_basis"] = "単体" if nc else "連結"
             break
@@ -173,9 +187,11 @@ def compute(rec, prices):
     has_board = bool(board) and "該当事項はありません" not in board[:400]
     has_agm = bool(agm) and "該当事項はありません" not in agm[:400]
     amt = meta["buyback_amount"] / 1e6
-    if has_board or has_agm:
+    if (has_board or has_agm) and amt >= 1:
         s = "取締役会決議による取得あり" if has_board else "株主総会決議による取得あり"
         meta["buyback_status"] = f"{s}（当期取得額 {amt:,.0f}百万円）"
+    elif has_board or has_agm:
+        meta["buyback_status"] = "取得の決議あり（当期の取得額は1百万円未満）"
     elif amt >= 1:
         meta["buyback_status"] = f"決議による取得なし（単元未満株買取等 {amt:,.0f}百万円）"
     elif amt > 0:
