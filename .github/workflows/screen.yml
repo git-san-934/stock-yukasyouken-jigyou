@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt yfinance
+      - run: pip install -r requirements.txt yfinance pandas xlrd openpyxl
       - name: 有報から数値を抽出
         env:
           EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
@@ -38,6 +38,12 @@ jobs:
           LIMIT=$(jq -r '.limit // empty' screen/run.json)
           if [ "$(jq -r '.prices // false' screen/run.json)" = "true" ]; then
             cd scripts && python fetch_prices.py $LIMIT
+          fi
+      - name: 東証上場銘柄一覧を取得
+        continue-on-error: true
+        run: |
+          if [ "$(jq -r '.jpx // false' screen/run.json)" = "true" ]; then
+            cd scripts && python fetch_jpx.py
           fi
       - name: 結果をコミット
         run: |

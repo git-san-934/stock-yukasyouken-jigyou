@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import sys
+import time
 
 import yfinance as yf
 
@@ -13,18 +14,31 @@ def main(limit: int | None = None) -> None:
     codes = sorted(p.name for p in DATA.iterdir() if (p / "meta.json").exists())
     if limit:
         codes = codes[:limit]
-    rows = []
-    for i in range(0, len(codes), 200):
-        chunk = codes[i:i + 200]
-        tickers = [f"{c}.T" for c in chunk]
-        df = yf.download(tickers, period="10d", interval="1d", auto_adjust=False,
-                         group_by="ticker", progress=False, threads=True)
-        for c, t in zip(chunk, tickers):
+    got: dict[str, tuple[str, float]] = {}
+    for attempt in range(4):
+        todo = [c for c in codes if c not in got]
+        if not todo:
+            break
+        for i in range(0, len(todo), 50):
+            chunk = todo[i:i + 50]
+            tickers = [f"{c}.T" for c in chunk]
             try:
-                s = df[t]["Close"].dropna()
-                rows.append([c, str(s.index[-1].date()), float(s.iloc[-1])])
-            except Exception:
-                rows.append([c, "", ""])
+                df = yf.download(tickers, period="10d", interval="1d", auto_adjust=False,
+                                 group_by="ticker", progress=False, threads=False)
+            except Exception as err:
+                print("download error", err)
+                time.sleep(10)
+                continue
+            for c, t in zip(chunk, tickers):
+                try:
+                    s = df[t]["Close"].dropna()
+                    got[c] = (str(s.index[-1].date()), float(s.iloc[-1]))
+                except Exception:
+                    pass
+            time.sleep(2)
+        print(f"attempt {attempt}: {len(got)}/{len(codes)}", flush=True)
+        time.sleep(30)
+    rows = [[c, *got[c]] if c in got else [c, "", ""] for c in codes]
     out = ROOT / "screen" / "prices.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", newline="", encoding="utf-8") as fh:
