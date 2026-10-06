@@ -34,6 +34,21 @@ NOT_PERSON = re.compile(r"会社|銀行|信託|証券|保険|生命|共済|財�
 PERSON = re.compile(r"^[\u4e00-\u9fff\u3040-\u309f々〆ヶ\s　]+$")
 
 
+FOREIGN = re.compile(r"常任代理人|[A-Za-zＡ-Ｚａ-ｚ]{4,}")
+FINANCIAL = re.compile(r"銀行|信託|証券|生命|保険|共済|カストディ|農林中央金庫|信用金庫")
+
+
+def holder_kind(name: str) -> str:
+    """大株主を所有者別状況の区分に寄せて分類する: foreign / financial / person / other"""
+    if FOREIGN.search(name):
+        return "foreign"
+    if FINANCIAL.search(name):
+        return "financial"
+    if is_person(name):
+        return "person"
+    return "other"
+
+
 def is_person(name: str) -> bool:
     if re.search(r"[(（]株[)）]|[(（]有[)）]|㈱|㈲|公司", name):
         return False
@@ -164,6 +179,23 @@ def compute(rec, prices):
             own = 0
         meta["float_ratio"] = max(0.0, ind - own / issued - big_ind - off_A / issued)
         meta["big_individual_ratio"] = big_ind
+
+        # 全株式の内訳: 浮動株 + 大株主 + 投資信託等(金融機関) + 外国人 + その他 = 100%
+        # 区分ごとの割合から、その区分に入る大株主の分を差し引いて二重計上を避ける
+        cat = lambda *els: sum((units(e) or 0) for e in els) / u_tot if u_tot else None
+        fin = cat("jpcrp_cor:NumberOfSharesHeldNumberOfUnitsFinancialInstitutions",
+                  "jpcrp_cor:NumberOfSharesHeldNumberOfUnitsFinancialServiceProviders")
+        frn = cat("jpcrp_cor:NumberOfSharesHeldNumberOfUnitsForeignInvestorsOtherThanIndividuals",
+                  "jpcrp_cor:NumberOfSharesHeldNumberOfUnitsForeignIndividualInvestors")
+        if fin is not None and holders:
+            by = defaultdict(float)
+            for name, _, ratio in holders:
+                by[holder_kind(name)] += (ratio or 0) * outstanding_share
+            big = sum(by.values())
+            meta["bd_big"] = big
+            meta["bd_fund"] = max(0.0, fin - by["financial"])
+            meta["bd_foreign"] = max(0.0, frn - by["foreign"])
+            meta["bd_other"] = max(0.0, 1 - meta["float_ratio"] - big - meta["bd_fund"] - meta["bd_foreign"])
 
     # 粗利率（連結を優先、なければ単体）
     for nc in (False, True):
