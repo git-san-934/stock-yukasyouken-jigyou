@@ -28,10 +28,14 @@ KEEP = re.compile(
     r"|Officer|IssuedShares|SummaryOfBusinessResults|GrossProfit|NetSales|Revenue"
     r"|CashAndDeposits|CashAndCashEquivalents|OperatingIncome|OperatingProfit|Dividend|ShareholderCategory|Shareholders"
     r"|PercentageOfShareholdings|SharesWithFullVotingRights|VotingRights|SecurityCodeDEI|FilerName|FiscalYear"
-    r"|AccountingStandardsDEI|WhetherConsolidated",
+    r"|AccountingStandardsDEI|WhetherConsolidated"
+    r"|LoansPayable|Bonds|Borrowings|CommercialPaper|InterestBearing"
+    r"|Employees|AverageAge|AverageAnnualSalary|AverageLengthOfService",
     re.I,
 )
 SKIP_CONTEXT = re.compile(r"^Prior", re.I)
+# 前期比を出すため、売上・営業利益だけは前期の値も残す
+PRIOR_OK = re.compile(r"NetSales|Revenue|OperatingIncome|OperatingProfit")
 
 
 def _rows(doc_id: str):
@@ -49,7 +53,9 @@ def collect(code: str, doc_id: str) -> dict:
         el = (row.get("要素ID") or "").strip()
         ctx = (row.get("コンテキストID") or "").strip()
         val = (row.get("値") or "").strip()
-        if not val or SKIP_CONTEXT.match(ctx):
+        if not val:
+            continue
+        if SKIP_CONTEXT.match(ctx) and not (ctx.startswith("Prior1YearDuration") and PRIOR_OK.search(el)):
             continue
         if el.endswith("TextBlock"):
             if "TreasuryShare" in el or el.startswith("jpcrp_cor:AcquisitionsBy"):
