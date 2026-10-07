@@ -31,7 +31,8 @@ KEEP = re.compile(
     r"|PercentageOfShareholdings|SharesWithFullVotingRights|VotingRights|SecurityCodeDEI|FilerName|FiscalYear"
     r"|AccountingStandardsDEI|WhetherConsolidated"
     r"|LoansPayable|Bonds|Borrowings|CommercialPaper|InterestBearing"
-    r"|Employees|AverageAge|AverageAnnualSalary|AverageLengthOfService",
+    r"|Employees|AverageAge|AverageAnnualSalary|AverageLengthOfService"
+    r"|InvestmentSharesHeldForPurposesOtherThanPureInvestment",
     re.I,
 )
 SKIP_CONTEXT = re.compile(r"^Prior", re.I)

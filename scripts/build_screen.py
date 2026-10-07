@@ -261,24 +261,109 @@ def compute(rec, prices):
         if fy_price:
             break
     price = prices.get(rec["code"])
+    if price and not 1 <= price[0] <= 300000:  # 株価データの異常値（yfinance）は使わない
+        price = None
+    factor = 1  # 決算期後の株式分割の倍率（推定）
+    split_unknown = False
+    if price and fy_price:
+        r = fy_price / price[0]
+        if r > 1.8:
+            f = min((2, 3, 4, 5, 10, 20, 50, 100), key=lambda f: abs(r / f - 1))
+            if 0.6 < r / f < 1.6:
+                factor = f
+                meta["split_adj"] = f
+            else:
+                split_unknown = True
     if price:
         meta["price"], meta["price_date"] = price
-        if dps is not None:
-            adj = dps
-            if fy_price:
-                r = fy_price / price[0]
-                if r > 1.8:  # 決算期後の株式分割とみなし、分割比率で配当を割る
-                    factor = min((2, 3, 4, 5, 10, 20, 50, 100), key=lambda f: abs(r / f - 1))
-                    if 0.6 < r / factor < 1.6:
-                        adj = dps / factor
-                        meta["split_adj"] = factor
-                    else:
-                        adj = None
-            if adj is not None:
-                meta["div_yield"] = adj / price[0]
-                # 期中の株式分割や特別配当でゆがみやすいので、高すぎる利回りは要確認にする
-                if meta["div_yield"] > 0.08 or "split_adj" in meta:
-                    meta["yield_check"] = 1
+        if dps is not None and not split_unknown:
+            meta["div_yield"] = dps / factor / price[0]
+            # 期中の株式分割や特別配当でゆがみやすいので、高すぎる利回りは要確認にする
+            if meta["div_yield"] > 0.08 or "split_adj" in meta:
+                meta["yield_check"] = 1
+
+    # ---- 投資指標 ----
+    def pick(names, kinds=("Duration",)):
+        cands = []
+        for nm in names:
+            for k in kinds:
+                cands += [(nm, f"CurrentYear{k}"), (nm, f"CurrentYear{k}_NonConsolidatedMember")]
+        return first(d, cands)[0]
+
+    S = lambda x: f"jpcrp_cor:{x}SummaryOfBusinessResults"
+    eps = pick([S("BasicEarningsLossPerShare"), S("BasicEarningsLossPerShareIFRS"), S("BasicEarningsLossPerShareUSGAAP")])
+    bps = pick([S("NetAssetsPerShare"), S("EquityToAssetRatioIFRS"),  # IFRS は名前と違い1株当たり親会社所有者帰属持分
+                S("EquityAttributableToOwnersOfParentPerShareUSGAAP")], ("Instant",))
+    meta["roe"] = pick([S("RateOfReturnOnEquity"), S("RateOfReturnOnEquityIFRS"), S("RateOfReturnOnEquityUSGAAP")])
+    meta["equity_ratio"] = pick([S("EquityToAssetRatio"), S("RatioOfOwnersEquityToGrossAssetsIFRS"),
+                                 S("EquityToAssetRatioUSGAAP")], ("Instant",))
+    if meta["roe"] is not None and abs(meta["roe"]) >= 2:
+        meta["roe"] = meta["roe"] / 100  # ％表記で入っている会社
+    if meta["equity_ratio"] is not None and meta["equity_ratio"] > 1.5:
+        meta["equity_ratio"] = meta["equity_ratio"] / 100  # ％表記で入っている会社
+    if meta["equity_ratio"] is not None and not -1 <= meta["equity_ratio"] <= 1:
+        meta["equity_ratio"] = None
+    if price and not split_unknown:
+        p0 = price[0] * factor  # 決算期の株数ベースに戻した株価
+        if eps and eps > 0 and p0 / eps <= 1000:
+            meta["per"] = p0 / eps
+        if bps and bps > 0 and p0 / bps <= 100:
+            meta["pbr"] = p0 / bps
+        if issued and p0 * (issued - treasury) >= 1e8:
+            meta["mcap"] = p0 * (issued - treasury)
+    mcap = meta.get("mcap")
+    if mcap and cash is not None:
+        meta["cash_to_mcap"] = cash / mcap
+
+    # 有利子負債（連結優先）
+    DEBT = ["jppfs_cor:ShortTermLoansPayable", "jppfs_cor:LongTermLoansPayable",
+            "jppfs_cor:CurrentPortionOfLongTermLoansPayable", "jppfs_cor:BondsPayable",
+            "jppfs_cor:CurrentPortionOfBonds", "jppfs_cor:CommercialPapersLiabilities",
+            "jppfs_cor:ShortTermBondsPayable", "jppfs_cor:ConvertibleBondTypeBondsWithSubscriptionRightsToShares",
+            "jppfs_cor:BondsWithSubscriptionRightsToSharesNCL",
+            "jpigp_cor:BondsAndBorrowingsCLIFRS", "jpigp_cor:BondsAndBorrowingsNCLIFRS",
+            "jpigp_cor:BorrowingsCLIFRS", "jpigp_cor:BorrowingsNCLIFRS",
+            "jpigp_cor:InterestBearingLiabilitiesCLIFRS", "jpigp_cor:InterestBearingLiabilitiesNCLIFRS",
+            "jpigp_cor:BondsPayableCLIFRS", "jpigp_cor:BondsPayableNCLIFRS",
+            "jpigp_cor:CurrentPortionOfLongTermBorrowingsCLIFRS", "jpigp_cor:BondsAndBorrowingsLiabilitiesIFRS",
+            "jpigp_cor:BorrowingsLiabilitiesIFRS"]
+    for ctx in ("CurrentYearInstant", "CurrentYearInstant_NonConsolidatedMember"):
+        vals = [num(d.get(e, {}).get(ctx, "")) for e in DEBT]
+        if any(v is not None for v in vals) or ctx.endswith("Member"):
+            meta["debt"] = sum(v for v in vals if v)
+            break
+    if mcap and cash is not None:
+        meta["netcash_to_mcap"] = (cash - meta["debt"]) / mcap
+
+    # 前期比（売上・営業利益、連結優先）
+    def pair(names):
+        for sfx in ("", "_NonConsolidatedMember"):
+            for nm in names:
+                cur = num(d.get(nm, {}).get("CurrentYearDuration" + sfx, ""))
+                pri = num(d.get(nm, {}).get("Prior1YearDuration" + sfx, ""))
+                if cur is not None and pri:
+                    return cur, pri
+        return None, None
+    cur, pri = pair(["jppfs_cor:NetSales", "jpigp_cor:RevenueIFRS", "jpigp_cor:NetSalesIFRS",
+                     S("NetSales"), S("RevenueIFRS"), S("OperatingRevenue1"), S("RevenuesUSGAAP")])
+    if cur is not None and pri > 0:
+        meta["sales_growth"] = cur / pri - 1
+    cur, pri = pair(["jppfs_cor:OperatingIncome", "jpigp_cor:OperatingProfitLossIFRS"])
+    if cur is not None and pri:
+        meta["op_growth"] = (cur - pri) / abs(pri)
+
+    # 従業員
+    meta["employees"] = pick(["jpcrp_cor:NumberOfEmployees"], ("Instant",))
+    meta["avg_age"] = pick(["jpcrp_cor:AverageAgeYearsInformationAboutReportingCompanyInformationAboutEmployees"], ("Instant",))
+    sal = pick(["jpcrp_cor:AverageAnnualSalaryInformationAboutReportingCompanyInformationAboutEmployees"], ("Instant",))
+    if sal is not None and sal < 100000:
+        sal *= 1000  # 千円単位で入っている会社
+    elif sal is not None and sal > 1e8:
+        sal /= 1000
+    meta["avg_salary"] = sal if sal is not None and 1e6 <= sal <= 5e7 else None
+    age = meta["avg_age"]
+    if age is not None and not 18 <= age <= 70:
+        meta["avg_age"] = None
 
     buy, *_ = first(d, [
         ("jppfs_cor:PurchaseOfTreasuryStockFinCF", "CurrentYearDuration"),
