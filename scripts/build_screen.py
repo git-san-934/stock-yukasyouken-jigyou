@@ -98,7 +98,12 @@ ZEN = str.maketrans("０１２３４５６７８９．％", "0123456789.%")
 DATE = re.compile(r"(昭和|平成|令和)?\s*(\d{1,4}|元)\s*年\s*(\d{1,2})\s*月")
 ERA = {"昭和": 1925, "平成": 1988, "令和": 2018}
 TODAY = (2026, 10)
+OTHER_CO = re.compile(r"(?<!当社)(株式会社|㈱|\(株\)|（株）|Corporation|Inc\.|子会社)(?!.*当社)")
 CEO = re.compile(r"(?<!副)社長|ＣＥＯ|CEO|最高経営責任者")
+CEO_ENTRY = re.compile(r"(取締役|執行役|執行役員)\s*社長|^\s*(当社|同社)?\s*社長|(?<!共同)(?<!共同 )CEO|最高経営責任者")
+REP = re.compile(r"代表執行役|代表取締役")
+SHACHO = re.compile(r"(?<!副)社長")
+REP_ENTRY = re.compile(r"代表執行役|代表取締役(?!副)(?!専務)(?!常務)")
 
 
 def _norm(t: str) -> str:
@@ -123,27 +128,29 @@ def _entries(career: str):
     return out
 
 
-def ceo_since(d):
+def ceo_since(d, filer=""):
     """社長（なければ代表取締役）の就任年月。役員の状況の役職名と略歴から読む"""
+    core = re.sub(r"株式会社|\s|　", "", filer)[:6]
+    cur = re.compile(r"[(（]現(任|在)?[)）]")
+
+    def ours(t):
+        return "当社" in t or t.lstrip().startswith("同") or (core and core in re.sub(r"\s|　", "", t)) or not OTHER_CO.search(t)
+
     for suffix in ("Proposal", ""):  # 総会後の新体制（議案）があればそちらを優先
         titles = d.get(f"jpcrp_cor:OfficialTitleOrPositionInformationAboutDirectorsAndCorporateAuditors{suffix}", {})
         careers = d.get(f"jpcrp_cor:CareerSummaryInformationAboutDirectorsAndCorporateAuditors{suffix}TextBlock", {})
-        if not titles:
-            continue
-        for title_re, entry_re in ((CEO, CEO), (re.compile("代表執行役|代表取締役"), re.compile("代表"))):
+        for title_re, entry_re in ((SHACHO, CEO_ENTRY), (CEO, CEO_ENTRY), (CEO, REP_ENTRY), (REP, REP_ENTRY)):
             for ctx, title in titles.items():
                 if not title_re.search(_norm(title)) or ctx not in careers:
                     continue
                 ents = _entries(careers[ctx])
-                hits = [e for e in ents if entry_re.search(e[2]) and "当社" in e[2]] or \
-                       [e for e in ents if entry_re.search(e[2]) and not re.search(r"同社|子会社", e[2])]
-                if hits:
-                    y, mo, _ = hits[-1]
-                    return y, mo
-                if title_re is CEO:  # 社長の略歴に社長就任が書かれていなければ代表取締役就任で代用
-                    hits = [e for e in ents if "代表" in e[2] and "当社" in e[2]]
-                    if hits:
-                        return hits[-1][:2]
+                ok = [entry_re.search(e[2]) is not None and ours(e[2]) for e in ents]
+                idx = [i for i, e in enumerate(ents) if ok[i] and cur.search(e[2])] or [i for i in range(len(ents)) if ok[i]]
+                if idx:
+                    i = idx[-1]
+                    while i > 0 and ok[i - 1]:  # 「社長 CEO」→「社長」のような肩書の言い換えは就任とみなさない
+                        i -= 1
+                    return ents[i][:2]
     return None
 
 
@@ -161,7 +168,7 @@ def text_flags(d, meta):
             tags.append("累進配当")
         if re.search(r"DOE|ＤＯＥ|株主資本配当率|純資産配当率|自己資本配当率", div):
             tags.append("DOE")
-        m = re.search(r"(総還元性向|配当性向)[^。]{0,20}?(\d{1,3}(?:\.\d)?)\s*%", div)
+        m = re.search(r"(総還元性向|配当性向)[^。]{0,20}?(\d{1,3}(?:\.\d)?)\s*%(?=[^。]{0,8}(以上|目安|目標|程度|基準|基本|を目処|をめど|水準))", div)
         if m:
             tags.append(f"{m.group(1)}{m.group(2)}%")
         meta["div_policy"] = "・".join(tags)
@@ -179,7 +186,7 @@ def text_flags(d, meta):
     par = _norm(text_of(d, "jpcrp_cor:InformationAboutParentCompanyEtcOfReportingCompanyTextBlock"))
     if par:
         meta["parent"] = 0 if re.search(r"親会社等?は(あり|有り)ません|該当事項は(あり|有り)ません|該当事項なし|親会社等はない", par) else 1
-    since = ceo_since(d)
+    since = ceo_since(d, meta.get("name", ""))
     if since:
         y, mo = since
         meta["ceo_since"] = f"{y}-{mo:02d}"
