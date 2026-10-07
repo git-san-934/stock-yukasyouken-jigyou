@@ -174,14 +174,14 @@ def text_flags(d, meta):
         meta["div_policy"] = "・".join(tags)
     sh = text_of(d, "jpcrp_cor:ShareholdingsTextBlock")
     if sh:
-        meta["xhold_cut"] = 1 if re.search(r"縮減|削減|売却を進め|売却する方針|全て売却|ゼロ", sh) else 0
+        meta["xhold_cut"] = 1 if re.search(r"縮減|削減|売却を進め|売却する方針|全て売却|売却を検討|順次売却", sh) else 0
     amt = 0
     for nm in ("CarryingAmountSharesOtherThanThoseNotListedInvestmentSharesHeldForPurposesOtherThanPureInvestmentReportingCompany",
                "CarryingAmountSharesNotListedInvestmentSharesHeldForPurposesOtherThanPureInvestmentReportingCompany"):
         v = num(d.get("jpcrp_cor:" + nm, {}).get("CurrentYearInstant", ""))
         if v:
             amt += v
-    if amt and meta.get("mcap"):
+    if amt and meta.get("mcap") and amt / meta["mcap"] <= 3:
         meta["xhold_to_mcap"] = amt / meta["mcap"]
     par = _norm(text_of(d, "jpcrp_cor:InformationAboutParentCompanyEtcOfReportingCompanyTextBlock"))
     if par:
