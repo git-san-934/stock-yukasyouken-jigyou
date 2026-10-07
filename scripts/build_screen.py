@@ -93,6 +93,99 @@ def text_of(d, el):
     return next(iter(d.get(el, {}).values()), "")
 
 
+# ---- 有報の文章から読む手がかり ----
+ZEN = str.maketrans("０１２３４５６７８９．％", "0123456789.%")
+DATE = re.compile(r"(昭和|平成|令和)?\s*(\d{1,4}|元)\s*年\s*(\d{1,2})\s*月")
+ERA = {"昭和": 1925, "平成": 1988, "令和": 2018}
+TODAY = (2026, 10)
+CEO = re.compile(r"(?<!副)社長|ＣＥＯ|CEO|最高経営責任者")
+
+
+def _norm(t: str) -> str:
+    return (t or "").translate(ZEN)
+
+
+def _entries(career: str):
+    """略歴を (年, 月, その行の文) に分ける"""
+    t = _norm(career)
+    ms = list(DATE.finditer(t))
+    out = []
+    for i, m in enumerate(ms):
+        era, y, mo = m.group(1), m.group(2), int(m.group(3))
+        y = 1 if y == "元" else int(y)
+        if era:
+            y += ERA[era]
+        elif y < 100:
+            continue
+        if not (1950 <= y <= TODAY[0] + 1 and 1 <= mo <= 12):
+            continue
+        out.append((y, mo, t[m.end(): ms[i + 1].start() if i + 1 < len(ms) else len(t)]))
+    return out
+
+
+def ceo_since(d):
+    """社長（なければ代表取締役）の就任年月。役員の状況の役職名と略歴から読む"""
+    for suffix in ("Proposal", ""):  # 総会後の新体制（議案）があればそちらを優先
+        titles = d.get(f"jpcrp_cor:OfficialTitleOrPositionInformationAboutDirectorsAndCorporateAuditors{suffix}", {})
+        careers = d.get(f"jpcrp_cor:CareerSummaryInformationAboutDirectorsAndCorporateAuditors{suffix}TextBlock", {})
+        if not titles:
+            continue
+        for title_re, entry_re in ((CEO, CEO), (re.compile("代表執行役|代表取締役"), re.compile("代表"))):
+            for ctx, title in titles.items():
+                if not title_re.search(_norm(title)) or ctx not in careers:
+                    continue
+                ents = _entries(careers[ctx])
+                hits = [e for e in ents if entry_re.search(e[2]) and "当社" in e[2]] or \
+                       [e for e in ents if entry_re.search(e[2]) and not re.search(r"同社|子会社", e[2])]
+                if hits:
+                    y, mo, _ = hits[-1]
+                    return y, mo
+                if title_re is CEO:  # 社長の略歴に社長就任が書かれていなければ代表取締役就任で代用
+                    hits = [e for e in ents if "代表" in e[2] and "当社" in e[2]]
+                    if hits:
+                        return hits[-1][:2]
+    return None
+
+
+def text_flags(d, meta):
+    pol = _norm(text_of(d, "jpcrp_cor:BusinessPolicyBusinessEnvironmentIssuesToAddressEtcTextBlock"))
+    if pol:
+        meta["capcost"] = 1 if re.search(r"資本コスト|PBR|株価純資産倍率|株価を意識", pol) else 0
+        m = re.search(r"(?:ROE|ＲＯＥ|自己資本利益率|株主資本利益率)[^。／]{0,30}?(\d{1,2}(?:\.\d)?)\s*%", pol)
+        if m:
+            meta["roe_target"] = float(m.group(1)) / 100
+    div = _norm(text_of(d, "jpcrp_cor:DividendPolicyTextBlock"))
+    if div:
+        tags = []
+        if re.search(r"累進", div):
+            tags.append("累進配当")
+        if re.search(r"DOE|ＤＯＥ|株主資本配当率|純資産配当率|自己資本配当率", div):
+            tags.append("DOE")
+        m = re.search(r"(総還元性向|配当性向)[^。]{0,20}?(\d{1,3}(?:\.\d)?)\s*%", div)
+        if m:
+            tags.append(f"{m.group(1)}{m.group(2)}%")
+        meta["div_policy"] = "・".join(tags)
+    sh = text_of(d, "jpcrp_cor:ShareholdingsTextBlock")
+    if sh:
+        meta["xhold_cut"] = 1 if re.search(r"縮減|削減|売却を進め|売却する方針|全て売却|ゼロ", sh) else 0
+    amt = 0
+    for nm in ("CarryingAmountSharesOtherThanThoseNotListedInvestmentSharesHeldForPurposesOtherThanPureInvestmentReportingCompany",
+               "CarryingAmountSharesNotListedInvestmentSharesHeldForPurposesOtherThanPureInvestmentReportingCompany"):
+        v = num(d.get("jpcrp_cor:" + nm, {}).get("CurrentYearInstant", ""))
+        if v:
+            amt += v
+    if amt and meta.get("mcap"):
+        meta["xhold_to_mcap"] = amt / meta["mcap"]
+    par = _norm(text_of(d, "jpcrp_cor:InformationAboutParentCompanyEtcOfReportingCompanyTextBlock"))
+    if par:
+        meta["parent"] = 0 if re.search(r"親会社等?は(あり|有り)ません|該当事項は(あり|有り)ません|該当事項なし|親会社等はない", par) else 1
+    since = ceo_since(d)
+    if since:
+        y, mo = since
+        meta["ceo_since"] = f"{y}-{mo:02d}"
+        meta["new_ceo"] = 1 if (TODAY[0] - y) * 12 + TODAY[1] - mo <= 24 else 0
+
+
 def compute(rec, prices):
     d = index(rec["rows"])
     meta = {"code": rec["code"], "doc_id": rec["doc_id"]}
@@ -390,6 +483,7 @@ def compute(rec, prices):
         meta["buyback_status"] = "決議による取得なし（単元未満株買取のみ）"
     else:
         meta["buyback_status"] = "なし"
+    text_flags(d, meta)
     return meta
 
 
