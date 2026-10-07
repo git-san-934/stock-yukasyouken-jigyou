@@ -20,6 +20,7 @@ from pathlib import Path
 
 from edinet_common import DATA, ROOT
 from extract_business import _ensure_csv_zip, _iter_csv_rows
+from htmltext import html_to_text
 
 OUT = ROOT / "screen"
 
@@ -36,6 +37,28 @@ KEEP = re.compile(
 SKIP_CONTEXT = re.compile(r"^Prior", re.I)
 # 前期比を出すため、売上・営業利益だけは前期の値も残す
 PRIOR_OK = re.compile(r"NetSales|Revenue|OperatingIncome|OperatingProfit")
+
+
+# マルチプル改善の手がかりになる文章。全文は大きいので、キーワードの前後だけ残す
+SNIPPET_BLOCKS = {
+    "jpcrp_cor:BusinessPolicyBusinessEnvironmentIssuesToAddressEtcTextBlock":
+        r"資本コスト|PBR|ＰＢＲ|株価純資産倍率|株価を意識|ROE|ＲＯＥ|自己資本利益率|株主資本利益率|総還元性向|政策保有",
+    "jpcrp_cor:ShareholdingsTextBlock": r"縮減|削減|売却を進め|売却する方針|保有しない|ゼロ|全て売却",
+}
+FULL_BLOCKS = {  # 短いので先頭から残す
+    "jpcrp_cor:DividendPolicyTextBlock": 3000,
+    "jpcrp_cor:InformationAboutParentCompanyEtcOfReportingCompanyTextBlock": 400,
+}
+CAREER = re.compile(r"CareerSummaryInformationAboutDirectorsAndCorporateAuditors(Proposal)?TextBlock$")
+
+
+def _snippets(text: str, pattern: str, width: int = 70, limit: int = 8) -> str:
+    out = []
+    for m in re.finditer(pattern, text):
+        out.append(text[max(0, m.start() - width): m.end() + width])
+        if len(out) >= limit:
+            break
+    return " ／ ".join(out)
 
 
 def _rows(doc_id: str):
@@ -60,6 +83,16 @@ def collect(code: str, doc_id: str) -> dict:
         if el.endswith("TextBlock"):
             if "TreasuryShare" in el or el.startswith("jpcrp_cor:AcquisitionsBy"):
                 out.append([el, ctx, val[:3000]])
+            elif el in SNIPPET_BLOCKS:
+                snip = _snippets(html_to_text(val), SNIPPET_BLOCKS[el])
+                out.append([el, ctx, snip or "（該当語なし）"])
+            elif el in FULL_BLOCKS:
+                out.append([el, ctx, html_to_text(val)[:FULL_BLOCKS[el]]])
+            elif CAREER.search(el):
+                out.append([el, ctx, html_to_text(val)[:2500]])
+            continue
+        if "OfficialTitleOrPositionInformationAboutDirectorsAndCorporateAuditors" in el:
+            out.append([el, ctx, val[:100]])
             continue
         if KEEP.search(el):
             out.append([el, ctx, val[:200]])
