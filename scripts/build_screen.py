@@ -193,6 +193,71 @@ def text_flags(d, meta):
         meta["new_ceo"] = 1 if (TODAY[0] - y) * 12 + TODAY[1] - mo <= 24 else 0
 
 
+# ---- 設備投資・キャッシュフロー ----
+NO_PLAN = re.compile(r"(特記すべき事項|特記事項|該当事項|計画)は(あり|有り)ません|(特記事項|該当事項)なし|計画はない")
+
+
+def _strip_head(t: str) -> str:
+    return re.sub(r"^\s*[0-9０-９]+\s*【[^】]*】\s*", "", t or "").strip()
+
+
+def capex_info(d, meta, pick, first_of):
+    sales = meta.get("sales")
+    capex = first_of(["jpcrp_cor:CapitalExpendituresOverviewOfCapitalExpendituresEtc", "jpigp_cor:CapitalExpendituresIFRS"])
+    cf = [num(d.get(e, {}).get("CurrentYearDuration", "")) for e in (
+        "jppfs_cor:PurchaseOfPropertyPlantAndEquipmentInvCF", "jppfs_cor:PurchaseOfIntangibleAssetsInvCF",
+        "jppfs_cor:PurchaseOfNoncurrentAssetsInvCF", "jpigp_cor:PurchaseOfPropertyPlantAndEquipmentInvCFIFRS",
+        "jpigp_cor:PurchaseOfIntangibleAssetsInvCFIFRS")]
+    cf_capex = sum(abs(v) for v in cf if v) or None
+    if capex is None or capex <= 0:
+        capex = cf_capex
+    if capex is not None and sales and capex > sales * 5:  # 単位違いなどの異常値
+        capex = None
+    meta["capex"] = capex
+    dep = first_of(["jppfs_cor:DepreciationAndAmortizationOpeCF", "jppfs_cor:DepreciationOpeCF",
+                    "jpigp_cor:DepreciationAndAmortizationOpeCFIFRS", "jpigp_cor:DepreciationAndAmortisationExpenseOpeCFIFRS"])
+    meta["depreciation"] = dep if dep and dep > 0 else None
+    if capex and sales and sales > 0:
+        meta["capex_to_sales"] = capex / sales
+    if capex and meta["depreciation"]:
+        meta["capex_to_dep"] = capex / meta["depreciation"]
+    S = lambda x: f"jpcrp_cor:{x}SummaryOfBusinessResults"
+    ope = first_of([S("NetCashProvidedByUsedInOperatingActivities"), S("CashFlowsFromUsedInOperatingActivitiesIFRS"),
+                    S("CashFlowsFromUsedInOperatingActivitiesUSGAAP"), "jppfs_cor:NetCashProvidedByUsedInOperatingActivities",
+                    "jpigp_cor:NetCashProvidedByUsedInOperatingActivitiesIFRS"])
+    inv = first_of([S("NetCashProvidedByUsedInInvestingActivities"), S("CashFlowsFromUsedInInvestingActivitiesIFRS"),
+                    S("CashFlowsFromUsedInInvestingActivitiesUSGAAP"), "jppfs_cor:NetCashProvidedByUsedInInvestmentActivities",
+                    "jpigp_cor:NetCashProvidedByUsedInInvestingActivitiesIFRS"])
+    meta["ope_cf"], meta["inv_cf"] = ope, inv
+    if ope is not None and inv is not None:
+        meta["fcf"] = ope + inv
+    ma = [num(d.get(e, {}).get("CurrentYearDuration", "")) for e in (
+        "jppfs_cor:PurchaseOfInvestmentsInSubsidiariesResultingInChangeInScopeOfConsolidationInvCF",
+        "jpigp_cor:PaymentsForAcquisitionOfSubsidiariesInvCFIFRS",
+        "jppfs_cor:PaymentsForAcquisitionOfBusinessesInvCF", "jpigp_cor:PaymentsForAcquisitionOfBusinessesInvCFIFRS")]
+    meta["ma_amount"] = sum(abs(v) for v in ma if v) or None
+    sec = [num(d.get(e, {}).get("CurrentYearDuration", "")) for e in (
+        "jppfs_cor:PurchaseOfInvestmentSecuritiesInvCF", "jpigp_cor:PurchaseOfInvestmentSecuritiesInvCFIFRS",
+        "jpigp_cor:PurchaseOfOtherFinancialAssetsInvCFIFRS")]
+    meta["sec_purchase"] = sum(abs(v) for v in sec if v) or None
+
+    ov = _strip_head(text_of(d, "jpcrp_cor:OverviewOfCapitalExpendituresEtcTextBlock"))
+    if ov:
+        meta["capex_text"] = ov[:1000]
+    pl = _strip_head(text_of(d, "jpcrp_cor:PlannedAdditionsRetirementsEtcOfFacilitiesTextBlock"))
+    if pl:
+        new = re.split(r"[(（]\s*[2２]\s*[)）]\s*重要な設備の除却|重要な設備の除却", pl)[0]
+        new = re.sub(r"^[(（]\s*[1１]\s*[)）]\s*重要な設備の新設等?\s*", "", new).strip()
+        meta["plan_text"] = new[:2000]
+        meta["plan"] = 0 if (NO_PLAN.search(new) and len(new) < 120) or not new else 1
+        m = re.search(r"(設備投資|投資)[^。]{0,8}(計画|予定)[^。]{0,60}?([0-9][0-9,]*(?:\.[0-9]+)?)\s*(億円|百万円|千円)", _norm(new))
+        if m:
+            unit = {"億円": 1e8, "百万円": 1e6, "千円": 1e3}[m.group(4)]
+            amt = float(m.group(3).replace(",", "")) * unit
+            if not sales or amt <= sales * 5:
+                meta["plan_amount"] = amt
+
+
 def compute(rec, prices):
     d = index(rec["rows"])
     meta = {"code": rec["code"], "doc_id": rec["doc_id"]}
@@ -503,6 +568,15 @@ def compute(rec, prices):
     else:
         meta["buyback_status"] = "なし"
     text_flags(d, meta)
+
+    def first_of(names):
+        for nm in names:
+            for ctx in ("CurrentYearDuration", "CurrentYearDuration_NonConsolidatedMember"):
+                v = num(d.get(nm, {}).get(ctx, ""))
+                if v is not None:
+                    return v
+        return None
+    capex_info(d, meta, pick, first_of)
     return meta
 
 
