@@ -39,7 +39,7 @@ for _, r in m.iterrows():
         "pe": v(r.get("per"), 2), "pb": v(r.get("pbr"), 3), "roe": v(r.get("roe"), 4),
         "er": v(r.get("equity_ratio"), 4), "cm": v(r.get("cash_to_mcap"), 4), "nc": v(r.get("netcash_to_mcap"), 4),
         "sg": v(r.get("sales_growth"), 4), "og": v(r.get("op_growth"), 4),
-        "em": v(r.get("employees"), 0), "ag": v(r.get("avg_age"), 1),
+        "em": v(r.get("employees"), 0), "ag": v(r.get("avg_age"), 1), "tn": v(r.get("avg_tenure"), 1),
         "sl": v(r.get("avg_salary") / 1e4 if pd.notna(r.get("avg_salary")) else None, 0),
         "cc": v(r.get("capcost"), 0), "rt": v(r.get("roe_target"), 4), "dp": v(r.get("div_policy")),
         "xc": v(r.get("xhold_cut"), 0), "xm": v(r.get("xhold_to_mcap"), 4), "pa": v(r.get("parent"), 0),

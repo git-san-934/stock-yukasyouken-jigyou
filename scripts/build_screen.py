@@ -454,7 +454,19 @@ def compute(rec, prices):
 
     # 従業員
     meta["employees"] = pick(["jpcrp_cor:NumberOfEmployees"], ("Instant",))
-    meta["avg_age"] = pick(["jpcrp_cor:AverageAgeYearsInformationAboutReportingCompanyInformationAboutEmployees"], ("Instant",))
+    def years(kind):
+        """「○年○ヶ月」形式で年と月が別の要素になっている会社は月を足す"""
+        el = f"jpcrp_cor:Average{kind}{{}}InformationAboutReportingCompanyInformationAboutEmployees"
+        y = pick([el.format("Years")], ("Instant",))
+        mo = pick([el.format("Months")], ("Instant",))
+        if y is not None and mo is not None and float(y).is_integer() and 0 <= mo < 12:
+            y += mo / 12
+        return y
+
+    meta["avg_age"] = years("Age")
+    meta["avg_tenure"] = years("LengthOfService")
+    if meta["avg_tenure"] is not None and not 0 <= meta["avg_tenure"] <= 50:
+        meta["avg_tenure"] = None
     sal = pick(["jpcrp_cor:AverageAnnualSalaryInformationAboutReportingCompanyInformationAboutEmployees"], ("Instant",))
     if sal is not None and sal < 100000:
         sal *= 1000  # 千円単位で入っている会社
