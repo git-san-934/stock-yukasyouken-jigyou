@@ -21,6 +21,11 @@ if markets:
 def v(x, r=None):
     if x is None or (isinstance(x, float) and math.isnan(x)) or x == "": return None
     return round(float(x), r) if r is not None else x
+def mil(x):  # 百万円
+    return v(x / 1e6 if pd.notna(x) else None, 0)
+def short(t, n=160):
+    if not isinstance(t, str) or not t: return None
+    return t if len(t) <= n else t[:n] + "…"
 rows = []
 for _, r in m.iterrows():
     rows.append({
@@ -44,6 +49,11 @@ for _, r in m.iterrows():
         "cc": v(r.get("capcost"), 0), "rt": v(r.get("roe_target"), 4), "dp": v(r.get("div_policy")),
         "xc": v(r.get("xhold_cut"), 0), "xm": v(r.get("xhold_to_mcap"), 4), "pa": v(r.get("parent"), 0),
         "cs": v(r.get("ceo_since")), "nw": v(r.get("new_ceo"), 0),
+        "oc": mil(r.get("ope_cf")), "ic": mil(r.get("inv_cf")), "fc": mil(r.get("fcf")),
+        "cx": mil(r.get("capex")), "cxs": v(r.get("capex_to_sales"), 4), "cxd": v(r.get("capex_to_dep"), 3),
+        "ma": mil(r.get("ma_amount")), "sp": mil(r.get("sec_purchase")),
+        "pl": v(r.get("plan"), 0), "pa2": mil(r.get("plan_amount")),
+        "ct": short(r.get("capex_text")), "pt": short(r.get("plan_text")),
     })
 fy = m["period_end"].dropna()
 pd_ = m["price_date"].dropna() if "price_date" in m else pd.Series([], dtype=str)

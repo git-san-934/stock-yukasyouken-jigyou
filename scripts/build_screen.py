@@ -204,10 +204,19 @@ def _strip_head(t: str) -> str:
 def capex_info(d, meta, pick, first_of):
     sales = meta.get("sales")
     capex = first_of(["jpcrp_cor:CapitalExpendituresOverviewOfCapitalExpendituresEtc", "jpigp_cor:CapitalExpendituresIFRS"])
-    cf = [num(d.get(e, {}).get("CurrentYearDuration", "")) for e in (
+    if capex is None:  # セグメント合計だけが付いている会社
+        capex = num(d.get("jpcrp_cor:CapitalExpendituresOverviewOfCapitalExpendituresEtc", {}).get("CurrentYearDuration_ReportableSegmentsMember", ""))
+    def cf_vals(elems):  # 連結がなければ単体の値
+        for ctx in ("CurrentYearDuration", "CurrentYearDuration_NonConsolidatedMember"):
+            vals = [num(d.get(e, {}).get(ctx, "")) for e in elems]
+            if any(vals):
+                return vals
+        return []
+
+    cf = cf_vals((
         "jppfs_cor:PurchaseOfPropertyPlantAndEquipmentInvCF", "jppfs_cor:PurchaseOfIntangibleAssetsInvCF",
         "jppfs_cor:PurchaseOfNoncurrentAssetsInvCF", "jpigp_cor:PurchaseOfPropertyPlantAndEquipmentInvCFIFRS",
-        "jpigp_cor:PurchaseOfIntangibleAssetsInvCFIFRS")]
+        "jpigp_cor:PurchaseOfIntangibleAssetsInvCFIFRS"))
     cf_capex = sum(abs(v) for v in cf if v) or None
     if capex is None or capex <= 0:
         capex = cf_capex
@@ -231,14 +240,14 @@ def capex_info(d, meta, pick, first_of):
     meta["ope_cf"], meta["inv_cf"] = ope, inv
     if ope is not None and inv is not None:
         meta["fcf"] = ope + inv
-    ma = [num(d.get(e, {}).get("CurrentYearDuration", "")) for e in (
+    ma = cf_vals((
         "jppfs_cor:PurchaseOfInvestmentsInSubsidiariesResultingInChangeInScopeOfConsolidationInvCF",
         "jpigp_cor:PaymentsForAcquisitionOfSubsidiariesInvCFIFRS",
-        "jppfs_cor:PaymentsForAcquisitionOfBusinessesInvCF", "jpigp_cor:PaymentsForAcquisitionOfBusinessesInvCFIFRS")]
+        "jppfs_cor:PaymentsForAcquisitionOfBusinessesInvCF", "jpigp_cor:PaymentsForAcquisitionOfBusinessesInvCFIFRS"))
     meta["ma_amount"] = sum(abs(v) for v in ma if v) or None
-    sec = [num(d.get(e, {}).get("CurrentYearDuration", "")) for e in (
+    sec = cf_vals((
         "jppfs_cor:PurchaseOfInvestmentSecuritiesInvCF", "jpigp_cor:PurchaseOfInvestmentSecuritiesInvCFIFRS",
-        "jpigp_cor:PurchaseOfOtherFinancialAssetsInvCFIFRS")]
+        "jpigp_cor:PurchaseOfOtherFinancialAssetsInvCFIFRS"))
     meta["sec_purchase"] = sum(abs(v) for v in sec if v) or None
 
     ov = _strip_head(text_of(d, "jpcrp_cor:OverviewOfCapitalExpendituresEtcTextBlock"))
@@ -246,10 +255,11 @@ def capex_info(d, meta, pick, first_of):
         meta["capex_text"] = ov[:1000]
     pl = _strip_head(text_of(d, "jpcrp_cor:PlannedAdditionsRetirementsEtcOfFacilitiesTextBlock"))
     if pl:
-        new = re.split(r"[(（]\s*[2２]\s*[)）]\s*重要な設備の除却|重要な設備の除却", pl)[0]
+        new = re.split(r"[(（]\s*[2２]\s*[)）]\s*(?:重要な)?設備の除却", pl)[0]
         new = re.sub(r"^[(（]\s*[1１]\s*[)）]\s*重要な設備の新設等?\s*", "", new).strip()
         meta["plan_text"] = new[:2000]
-        meta["plan"] = 0 if (NO_PLAN.search(new) and len(new) < 120) or not new else 1
+        no_new = re.search(r"新設[^。]{0,40}?(あり|有り|ござい)ません", new) and not re.search(r"(次|以下)の(とおり|通り)|投資予定|予算金額|計画金額|百万円|千円|億円", new)
+        meta["plan"] = 0 if not new or no_new or (len(new) < 120 and re.search(r"(あり|有り|ござい)ません|計画しておりません|ない。|なし", new)) else 1
         m = re.search(r"(設備投資|投資)[^。]{0,8}(計画|予定)[^。]{0,60}?([0-9][0-9,]*(?:\.[0-9]+)?)\s*(億円|百万円|千円)", _norm(new))
         if m:
             unit = {"億円": 1e8, "百万円": 1e6, "千円": 1e3}[m.group(4)]
