@@ -32,7 +32,8 @@ KEEP = re.compile(
     r"|AccountingStandardsDEI|WhetherConsolidated"
     r"|LoansPayable|Bonds|Borrowings|CommercialPaper|InterestBearing"
     r"|Employees|AverageAge|AverageAnnualSalary|AverageLengthOfService"
-    r"|InvestmentSharesHeldForPurposesOtherThanPureInvestment",
+    r"|InvestmentSharesHeldForPurposesOtherThanPureInvestment"
+    r"|CapitalExpenditures|InvestingActivities|OperatingActivities|InvCF|Depreciation",
     re.I,
 )
 SKIP_CONTEXT = re.compile(r"^Prior", re.I)
@@ -49,6 +50,8 @@ SNIPPET_BLOCKS = {
 FULL_BLOCKS = {  # 短いので先頭から残す
     "jpcrp_cor:DividendPolicyTextBlock": 3000,
     "jpcrp_cor:InformationAboutParentCompanyEtcOfReportingCompanyTextBlock": 400,
+    "jpcrp_cor:OverviewOfCapitalExpendituresEtcTextBlock": 1500,  # 当期の設備投資の内容
+    "jpcrp_cor:PlannedAdditionsRetirementsEtcOfFacilitiesTextBlock": 2500,  # 今後の設備の新設計画
 }
 CAREER = re.compile(r"CareerSummaryInformationAboutDirectorsAndCorporateAuditors(Proposal)?TextBlock$")
 
