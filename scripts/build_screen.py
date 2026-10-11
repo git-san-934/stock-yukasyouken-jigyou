@@ -483,6 +483,8 @@ def compute(rec, prices):
         meta["eps"] = eps / factor if not split_unknown else eps
         if split_unknown:
             meta["eps_note"] = "分割未調整の可能性"
+    if bps is not None and bps > 0:
+        meta["bps"] = bps / factor if not split_unknown else bps
     if price and not split_unknown:
         p0 = price[0] * factor  # 決算期の株数ベースに戻した株価
         if eps and eps > 0 and p0 / eps <= 1000:

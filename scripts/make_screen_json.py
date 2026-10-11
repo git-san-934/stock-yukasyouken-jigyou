@@ -41,7 +41,7 @@ for _, r in m.iterrows():
         "t": v(r.get("treasury_ratio"), 4), "top1": v(r.get("top1")),
         "fy": v(r.get("period_end")),
         "mc": v(r.get("mcap") / 1e6 if pd.notna(r.get("mcap")) else None, 0),
-        "eps": v(r.get("eps"), 2), "pe": v(r.get("per"), 2), "pb": v(r.get("pbr"), 3), "roe": v(r.get("roe"), 4),
+        "eps": v(r.get("eps"), 2), "pe": v(r.get("per"), 2), "bps": v(r.get("bps"), 2), "pb": v(r.get("pbr"), 3), "roe": v(r.get("roe"), 4),
         "er": v(r.get("equity_ratio"), 4), "cm": v(r.get("cash_to_mcap"), 4), "nc": v(r.get("netcash_to_mcap"), 4),
         "sg": v(r.get("sales_growth"), 4), "og": v(r.get("op_growth"), 4),
         "em": v(r.get("employees"), 0), "ag": v(r.get("avg_age"), 1), "tn": v(r.get("avg_tenure"), 1),
