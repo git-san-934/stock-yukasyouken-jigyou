@@ -54,6 +54,8 @@ for _, r in m.iterrows():
         "ma": mil(r.get("ma_amount")), "sp": mil(r.get("sec_purchase")),
         "pl": v(r.get("plan"), 0), "pa2": mil(r.get("plan_amount")),
         "ct": short(r.get("capex_text")), "pt": short(r.get("plan_text")),
+        "bk": v(r.get("bps_streak"), 0), "bn": v(r.get("bps_periods"), 0),
+        "bgw": v(r.get("bps_growth"), 3), "bh": v(r.get("bps_hist")),
     })
 fy = m["period_end"].dropna()
 pd_ = m["price_date"].dropna() if "price_date" in m else pd.Series([], dtype=str)

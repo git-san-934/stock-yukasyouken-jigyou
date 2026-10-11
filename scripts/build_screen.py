@@ -607,6 +607,12 @@ def main():
             if r["close"]:
                 prices[r["code"]] = (float(r["close"]), r["date"])
     rows = [compute(json.loads(line), prices) for line in gzip.open(raw, "rt", encoding="utf-8")]
+    hist = raw.parent / "history.jsonl.gz"
+    if hist.exists():  # BPSの長期推移（fetch_history.py の出力）
+        from build_history import build
+        hb = build(hist)
+        for r in rows:
+            r.update(hb.get(r["code"], {}))
     cols = list(dict.fromkeys(k for r in rows for k in r))
     with open(out, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=cols)
