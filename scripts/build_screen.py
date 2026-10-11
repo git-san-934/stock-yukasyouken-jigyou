@@ -478,6 +478,11 @@ def compute(rec, prices):
         meta["equity_ratio"] = meta["equity_ratio"] / 100  # ％表記で入っている会社
     if meta["equity_ratio"] is not None and not -1 <= meta["equity_ratio"] <= 1:
         meta["equity_ratio"] = None
+    if eps is not None:
+        # 決算期のあとに株式分割した銘柄は今の株数ベースに直す
+        meta["eps"] = eps / factor if not split_unknown else eps
+        if split_unknown:
+            meta["eps_note"] = "分割未調整の可能性"
     if price and not split_unknown:
         p0 = price[0] * factor  # 決算期の株数ベースに戻した株価
         if eps and eps > 0 and p0 / eps <= 1000:
