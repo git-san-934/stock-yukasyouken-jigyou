@@ -25,7 +25,14 @@ SHARES = "jpcrp_cor:TotalNumberOfIssuedSharesSummaryOfBusinessResults"
 FACTORS = (2, 3, 4, 5, 10, 20, 50, 100, 1.5, 1.2, 1.1)
 # つなぎ目でBPSが跳ねた時に分割とみなす倍率（併合は逆数）
 JUMPS = (1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 15, 20, 30, 40, 50, 100)
-CTX = re.compile(r"^(CurrentYear|Prior([1-4])Year)Instant(_NonConsolidatedMember)?$")
+EPS_ELEMENTS = [
+    "jpcrp_cor:BasicEarningsLossPerShareSummaryOfBusinessResults",
+    "jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults",
+    "jpcrp_cor:BasicEarningsLossPerShareUSGAAPSummaryOfBusinessResults",
+]
+DPS = "jpcrp_cor:DividendPaidPerShareSummaryOfBusinessResults"
+IDPS = "jpcrp_cor:InterimDividendPaidPerShareSummaryOfBusinessResults"
+CTX = re.compile(r"^(CurrentYear|Prior([1-4])Year)(Instant|Duration)(_NonConsolidatedMember)?$")
 
 
 def _num(v):
@@ -59,11 +66,14 @@ def _jump_factor(j: float) -> float:
 
 
 def _doc_series(rec):
-    """1つの有報から {期末(YYYY-MM): BPS} と当期末の発行済株式数を返す"""
+    """1つの有報から {期末(YYYY-MM): BPS}、当期末の発行済株式数、同じく EPS・1株配当 を返す"""
     pe = rec.get("period_end")
     if not pe:
-        return None, {}, None
+        return None, {}, None, {}, {}
     pe = date.fromisoformat(pe[:10])
+    eps = {False: {}, True: {}}
+    dps = {False: {}, True: {}}
+    idps = {False: {}, True: {}}
     vals = {False: {}, True: {}}  # nonconsolidated?
     shares = {False: {}, True: {}}  # 期ごとの発行済株式数（その時点の実数）
     for el, ctx, v in rec["rows"]:
@@ -71,20 +81,28 @@ def _doc_series(rec):
         if not m:
             continue
         k = int(m.group(2) or 0)
-        nc = bool(m.group(3))
+        inst = m.group(3) == "Instant"
+        nc = bool(m.group(4))
         x = _num(v)
         if x is None:
             continue
-        if el in BPS_ELEMENTS and x > 0:
+        if el in BPS_ELEMENTS and inst and x > 0:
             vals[nc].setdefault(k, x)
-        elif el == SHARES:
+        elif el == SHARES and inst:
             shares[nc][k] = x
+        elif el in EPS_ELEMENTS and not inst:
+            eps[nc].setdefault(k, x)
+        elif el == DPS and not inst:
+            dps[nc].setdefault(k, x)
+        elif el == IDPS and not inst:
+            idps[nc].setdefault(k, x)
     use_nc = not vals[False]
     series, sh = vals[use_nc], shares[use_nc] or shares[not use_nc]
     cur = sh.get(0)
     # 同じ有報の中でも、分割前の期のBPSを直していない会社がある（例: IFRSで最古期だけ分割前）。
     # その期の株数が今と分割倍率ぶん違い、BPSも1期新しい値からその倍率近く跳ねていれば直す。
     out = {}
+    intra = {}  # 期ごとに直した倍率（EPS・配当にも同じ倍率を使う）
     newer = None
     for k in sorted(series):
         x = series[k]
@@ -92,27 +110,87 @@ def _doc_series(rec):
             f = _snap(cur / sh[k])
             if f != 1.0 and abs(math.log(x / newer / f)) < abs(math.log(x / newer)):
                 x /= f
+                intra[k] = f
         out[f"{pe.year - k:04d}-{pe.month:02d}"] = x
         newer = x
-    return pe, out, cur
+    key = lambda k: f"{pe.year - k:04d}-{pe.month:02d}"
+    e = eps[False] or eps[True]
+    dv = dps[False] or dps[True]
+    eo = {key(k): v / intra.get(k, 1.0) for k, v in e.items()}
+    # 配当はEPS・BPSと違って分割で過去分を直さない（実際に払った額）ので、株数で直すために株数も返す
+    iv = idps[False] or idps[True]
+    do = {key(k): (v, iv.get(k), sh.get(k)) for k, v in dv.items()}
+    return pe, out, cur, eo, do
+
+
+def _adjust_dps(raw: dict[str, tuple]) -> dict[str, float]:
+    """1株配当を最新期の株数ベースに直す。
+    有報の配当は分割で過去分を直している会社と直していない会社が混在する（同じ有報の中でも混在する）。
+    そこで新しい期から順にさかのぼり、隣り合う期の発行済株式数の比から分割を見つけたら「未消化の倍率」として持ち、
+    配当がその倍率ぶん跳ねた所で直す。期中に分割した期は、中間配当（分割前）を直した値も試す。"""
+    keys = sorted(raw)
+    if not keys:
+        return {}
+    out = {keys[-1]: raw[keys[-1]][0]}
+    cum, pending = 1.0, 1.0
+    kn = keys[-1]
+    for k in reversed(keys[:-1]):
+        x, _, sh = raw[k]
+        shn = raw[kn][2]
+        if sh and shn:
+            pending *= _snap(shn / sh)
+        y = out[kn]
+        if pending != 1.0 and x > 0 and y > 0:
+            j = x / cum / y
+            if abs(math.log(j / pending)) < 0.45:
+                cum *= pending
+                pending = 1.0
+            else:
+                yraw, yint, _ = raw[kn]
+                if yint and 0 < yint <= yraw:
+                    alt = (yint / pending + (yraw - yint)) / cum  # 1期新しい期が期中分割だった場合
+                    if alt > 0 and abs(math.log(x / cum / alt / pending)) < 0.45:
+                        out[kn] = alt
+                        cum *= pending
+                        pending = 1.0
+        out[k] = x / cum
+        kn = k
+    return out
+
+
+def _tail(m: dict[str, float]) -> list[str]:
+    """最新期から1年ずつ途切れずに続いている期（古い順）"""
+    keys = sorted(m)
+    if not keys:
+        return []
+    out = [keys[-1]]
+    for k in reversed(keys[:-1]):
+        y1, m1 = map(int, out[0].split("-"))
+        y0, m0 = map(int, k.split("-"))
+        if not 6 <= (y1 - y0) * 12 + (m1 - m0) <= 15:
+            break
+        out.insert(0, k)
+    return out
 
 
 def build(path: Path) -> dict[str, dict]:
     docs = defaultdict(list)
     for line in gzip.open(path, "rt", encoding="utf-8"):
         rec = json.loads(line)
-        pe, series, shares = _doc_series(rec)
+        pe, series, shares, eps, dps = _doc_series(rec)
         if pe and series:
-            docs[rec["code"]].append((pe, series, shares))
+            docs[rec["code"]].append((pe, series, shares, eps, dps))
 
     out = {}
     for code, items in docs.items():
         items.sort(key=lambda t: t[0], reverse=True)  # 新しい有報から
         merged: dict[str, float] = {}
         base_shares = items[0][2]
+        m_eps: dict[str, float] = {}
+        m_dps: dict[str, float] = {}
         notes = []
         prev_f = 1.0
-        for pe, series, shares in items:
+        for pe, series, shares, eps, dps in items:
             f = 1.0
             common = [k for k in series if k in merged]
             if common:
@@ -134,6 +212,10 @@ def build(path: Path) -> dict[str, dict]:
             prev_f = f
             for k, v in series.items():
                 merged.setdefault(k, v / f)
+            for k, v in eps.items():
+                m_eps.setdefault(k, v / f)
+            for k, v in dps.items():
+                m_dps.setdefault(k, v)
         keys = sorted(merged)
         # 最新期から1年ずつさかのぼって、連続して増えている期数を数える
         streak = 0
@@ -148,6 +230,25 @@ def build(path: Path) -> dict[str, dict]:
             else:
                 break
         first, last = keys[0], keys[-1]
+        m_dps = _adjust_dps(m_dps)
+        e10, d10 = _tail(m_eps), _tail(m_dps)
+        extra = {}
+        if len(e10) >= 10:
+            e10 = e10[-10:]
+            ev = [m_eps[k] for k in e10]
+            extra["eps10_pos"] = int(all(v > 0 for v in ev))
+            extra["eps10_x"] = ev[-1] / ev[0] if ev[0] > 0 else None
+        if len(d10) >= 10:
+            d10 = d10[-10:]
+            dv = [m_dps[k] for k in d10]
+            extra["dps10_zero"] = sum(v <= 0 for v in dv)
+            # 分割調整の端数で下がって見えないよう、2%未満の減少は減配としない
+            extra["dps10_cut"] = sum(b < a * 0.98 for a, b in zip(dv, dv[1:]))
+        r2 = (extra.get("eps10_pos") == 1 and (extra.get("eps10_x") or 0) >= 2 and streak >= 9
+              and extra.get("dps10_zero") == 0 and extra.get("dps10_cut", 9) <= 1)
+        extra["ricky2"] = int(r2) if len(e10) >= 10 and len(d10) >= 10 else None
+        extra["eps_hist"] = " / ".join(f"{k[:4]}.{k[5:]}:{m_eps[k]:,.1f}" for k in sorted(m_eps))
+        extra["dps_hist"] = " / ".join(f"{k[:4]}.{k[5:]}:{m_dps[k]:,.1f}" for k in sorted(m_dps))
         out[code] = {
             "bps_streak": streak,
             "bps_periods": len(keys),
@@ -155,6 +256,7 @@ def build(path: Path) -> dict[str, dict]:
             "bps_growth": merged[last] / merged[first] if merged[first] > 0 else None,
             "bps_hist": " / ".join(f"{k[:4]}.{k[5:]}:{merged[k]:,.0f}" for k in keys),
             "bps_note": "、".join(notes),
+            **extra,
         }
     return out
 

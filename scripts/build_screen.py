@@ -459,10 +459,12 @@ def compute(rec, prices):
 
     # ---- 投資指標 ----
     def pick(names, kinds=("Duration",)):
+        # 連結の値をどの要素名でも先に探し、なければ単体（IFRS会社の単体の日本基準値を拾わないため）
         cands = []
-        for nm in names:
-            for k in kinds:
-                cands += [(nm, f"CurrentYear{k}"), (nm, f"CurrentYear{k}_NonConsolidatedMember")]
+        for nc in ("", "_NonConsolidatedMember"):
+            for nm in names:
+                for k in kinds:
+                    cands.append((nm, f"CurrentYear{k}{nc}"))
         return first(d, cands)[0]
 
     S = lambda x: f"jpcrp_cor:{x}SummaryOfBusinessResults"
@@ -472,6 +474,18 @@ def compute(rec, prices):
     meta["roe"] = pick([S("RateOfReturnOnEquity"), S("RateOfReturnOnEquityIFRS"), S("RateOfReturnOnEquityUSGAAP")])
     meta["equity_ratio"] = pick([S("EquityToAssetRatio"), S("RatioOfOwnersEquityToGrossAssetsIFRS"),
                                  S("EquityToAssetRatioUSGAAP")], ("Instant",))
+    # ROA＝親会社株主に帰属する当期純利益÷総資産（期首・期末の平均。前期末がなければ期末）。連結優先、なければ単体
+    for nc in ("", "_NonConsolidatedMember"):
+        ni_names = [S("ProfitLossAttributableToOwnersOfParent"), S("ProfitLossAttributableToOwnersOfParentIFRS"),
+                    S("NetIncomeLossAttributableToOwnersOfParentUSGAAP")] if not nc else [S("NetIncomeLoss")]
+        ni = first(d, [(x, "CurrentYearDuration" + nc) for x in ni_names])[0]
+        ta_names = [S("TotalAssets"), S("TotalAssetsIFRS"), S("TotalAssetsUSGAAP")]
+        ta = first(d, [(x, "CurrentYearInstant" + nc) for x in ta_names])[0]
+        ta0 = first(d, [(x, "Prior1YearInstant" + nc) for x in ta_names])[0]
+        if ni is not None and ta and ta > 0:
+            avg = (ta + ta0) / 2 if ta0 and ta0 > 0 else ta
+            meta["roa"] = ni / avg
+            break
     if meta["roe"] is not None and abs(meta["roe"]) >= 2:
         meta["roe"] = meta["roe"] / 100  # ％表記で入っている会社
     if meta["equity_ratio"] is not None and meta["equity_ratio"] > 1.5:
