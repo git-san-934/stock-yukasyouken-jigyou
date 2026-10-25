@@ -1,1 +1,1 @@
-{"history": [0, 2, 4, 6, 8], "history_out": "history_cf.jsonl.gz", "prices": true, "jpx": true}
+{"history": [8], "history_out": "history_cf.jsonl.gz", "history_retry": true}

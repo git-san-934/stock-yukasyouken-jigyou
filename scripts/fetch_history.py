@@ -94,6 +94,7 @@ def main() -> None:
     ap.add_argument("--limit", type=int)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--out", default="history.jsonl.gz")
+    ap.add_argument("--retry", action="store_true", help="前回失敗した分だけ取り直して追記する")
     a = ap.parse_args()
 
     metas = []
@@ -106,6 +107,11 @@ def main() -> None:
     by_sec = {m["seccode"]: m["code"] for m in metas}
 
     jobs = []
+    fail_path = OUT / a.out.replace(".jsonl.gz", "_failures.json")
+    if a.retry:
+        jobs = [tuple(x[:3]) for x in json.loads(fail_path.read_text())]
+        a.offsets = []
+        a.workers = 2  # 429（回数制限）で失敗したので控えめに
     for off in a.offsets:
         if off == 0:
             jobs += [(m["code"], 0, m["doc_id"]) for m in metas]
@@ -115,7 +121,7 @@ def main() -> None:
     dest = OUT / a.out
     failures = []
     done = 0
-    with gzip.open(dest, "wt", encoding="utf-8") as fh, ThreadPoolExecutor(max_workers=a.workers) as ex:
+    with gzip.open(dest, "at" if a.retry else "wt", encoding="utf-8") as fh, ThreadPoolExecutor(max_workers=a.workers) as ex:
         futs = {ex.submit(collect, *j): j for j in jobs}
         for fut in as_completed(futs):
             try:
@@ -125,7 +131,7 @@ def main() -> None:
             done += 1
             if done % 500 == 0:
                 print(f"{done}/{len(jobs)} failures={len(failures)}", flush=True)
-    (OUT / a.out.replace(".jsonl.gz", "_failures.json")).write_text(json.dumps(failures, ensure_ascii=False, indent=1))
+    (fail_path).write_text(json.dumps(failures, ensure_ascii=False, indent=1))
     print(f"done {done} failures={len(failures)}")
     sys.exit(0)
 
