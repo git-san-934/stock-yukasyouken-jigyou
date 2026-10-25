@@ -249,6 +249,18 @@ def build(path: Path) -> dict[str, dict]:
         extra["ricky2"] = int(r2) if len(e10) >= 10 and len(d10) >= 10 else None
         extra["eps_hist"] = " / ".join(f"{k[:4]}.{k[5:]}:{m_eps[k]:,.1f}" for k in sorted(m_eps))
         extra["dps_hist"] = " / ".join(f"{k[:4]}.{k[5:]}:{m_dps[k]:,.1f}" for k in sorted(m_dps))
+        # 銘柄ごとの詳細用：直近10期の EPS・1株配当・配当性向（連結＝配当÷EPS）・BPS
+        allk = {**merged, **m_eps, **m_dps}
+        yrs = _tail(allk)[-10:]
+        r1 = lambda x: None if x is None else round(x, 2)
+        extra["detail"] = json.dumps({
+            "y": [f"{k[:4]}.{k[5:]}" for k in yrs],
+            "e": [r1(m_eps.get(k)) for k in yrs],
+            "d": [r1(m_dps.get(k)) for k in yrs],
+            "p": [round(m_dps[k] / m_eps[k], 3) if m_dps.get(k) is not None and m_eps.get(k) and m_eps[k] > 0 else None
+                  for k in yrs],
+            "b": [r1(merged.get(k)) for k in yrs],
+        }, separators=(",", ":"))
         out[code] = {
             "bps_streak": streak,
             "bps_periods": len(keys),
@@ -258,6 +270,63 @@ def build(path: Path) -> dict[str, dict]:
             "bps_note": "、".join(notes),
             **extra,
         }
+    return out
+
+
+STD_CF = ("PurchaseOfTreasuryStockFinCF", "PaymentsForPurchaseOfTreasurySharesFinCFIFRS")
+STD_SS = ("PurchaseOfTreasuryStock", "PurchaseOfTreasurySharesSSIFRS")
+
+
+def build_buyback(path: Path) -> dict[str, dict[str, float]]:
+    """history_cf.jsonl.gz から {code: {期末(YYYY-MM): 自己株式の取得額(円)}}。
+    各有報の当期・前期分をつなぐ（新しい有報を優先、連結優先）。取得額は次の順に探す。
+      1. キャッシュ・フロー計算書の標準の科目（自己株式の取得による支出）
+      2. 会社独自のCF科目のうち「取得・買戻し」を含むもの（支出＝マイナスの値だけ）
+      3. 株主資本等変動計算書の自己株式の取得
+    どれもなければ自己株式の取得はなかったとみなして0円。"""
+    docs = defaultdict(list)
+    for line in gzip.open(path, "rt", encoding="utf-8"):
+        rec = json.loads(line)
+        if not rec.get("period_end"):
+            continue
+        pe = date.fromisoformat(rec["period_end"][:10])
+        found = {}  # (優先度, 単体か, 期) -> 金額
+        for el, ctx, x in rec["rows"]:
+            local = el.split(":")[-1]
+            m = re.match(r"^(CurrentYear|Prior1Year)Duration(_NonConsolidatedMember)?$", ctx)
+            n = _num(x)
+            if not m or n is None:
+                continue
+            k = 0 if m.group(1) == "CurrentYear" else 1
+            nc = bool(m.group(2))
+            if local in STD_CF:
+                pr, val = 1, abs(n)
+            elif "FinCF" in local and re.search(r"Purchase|Repurchase|Acquisition", local) \
+                    and not re.search(r"Subsidiar|Deposit|Trust|AcquisitionRights|SubscriptionRights", local) \
+                    and not local.startswith(("Proceeds", "DecreaseIncrease", "IncreaseDecrease")):
+                if n >= 0:
+                    continue
+                pr, val = 2, -n
+            elif local in STD_SS and el.startswith(("jppfs_cor", "jpigp_cor")):
+                pr, val = 3, abs(n)
+            else:
+                continue
+            found[(pr, nc, k)] = found.get((pr, nc, k), 0) + val
+        vals = {}
+        for k in (0, 1):
+            hit = sorted((pr, nc) for (pr, nc, kk) in found if kk == k)
+            # 連結を優先し、その中で優先度の高い科目
+            hit.sort(key=lambda t: (t[1], t[0]))
+            vals[f"{pe.year - k:04d}-{pe.month:02d}"] = found[(hit[0][0], hit[0][1], k)] if hit else 0.0
+        docs[rec["code"]].append((pe, vals))
+    out = {}
+    for code, items in docs.items():
+        items.sort(key=lambda t: t[0], reverse=True)
+        mm = {}
+        for _, vals in items:
+            for k, x in vals.items():
+                mm.setdefault(k, x)
+        out[code] = mm
     return out
 
 

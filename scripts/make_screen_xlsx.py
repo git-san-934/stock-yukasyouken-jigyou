@@ -164,6 +164,32 @@ sheet(wb, "Ricky第1段階のみ", m[R1].assign(_k=-m["div_yield"]), "_k")
 if "bps_streak" in m:
     nK = sheet(wb, "抽出_BPS10期連続増加", m[m["bps_streak"] >= 10].assign(_k=-m["bps_streak"]), "_k")
 sheet(wb, "全銘柄", m, "code")
+# 銘柄ごとの10年推移（1行＝1銘柄×1決算期）
+if "detail" in m:
+    import json as _json
+    ws = wb.create_sheet("10年推移")
+    hdr = ["銘柄コード", "銘柄名", "決算期", "EPS（円）", "1株配当（円）", "配当性向（連結）", "自社株買い（百万円）", "BPS（円）"]
+    fmts = [None, None, None, "#,##0.00", "#,##0.00", "0.0%", "#,##0", "#,##0.00"]
+    widths = [10, 34, 10, 11, 11, 11, 14, 11]
+    for c, (h, w) in enumerate(zip(hdr, widths), 1):
+        cell = ws.cell(1, c, h)
+        cell.font, cell.fill = Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor="1F4E78")
+        ws.column_dimensions[get_column_letter(c)].width = w
+    rr = 2
+    for _, row in m.sort_values("code").iterrows():
+        if not isinstance(row.get("detail"), str):
+            continue
+        t = _json.loads(row["detail"])
+        for i, y in enumerate(t["y"]):
+            k = t.get("k", [None] * len(t["y"]))[i]
+            vals = [row["code"], row["name"], y, t["e"][i], t["d"][i], t["p"][i], k, t["b"][i]]
+            for c, (v, f) in enumerate(zip(vals, fmts), 1):
+                cell = ws.cell(rr, c, v)
+                if f:
+                    cell.number_format = f
+            rr += 1
+    ws.freeze_panes = "D2"
+    ws.auto_filter.ref = f"A1:H{rr - 1}"
 pmin = m["price_date"].dropna().min() if "price_date" in m else ""
 pmax = m["price_date"].dropna().max() if "price_date" in m else ""
 lines = [
@@ -205,6 +231,7 @@ lines = [
     ("・Rickyさんの条件　第1段階：PER12倍以下、PBR1.3倍以下、ROE7%以上、ROA3%以上、配当利回り3%以上、自己資本比率35%以上、時価総額100億円以上。", False),
     ("　第2段階：直近10期（最新期と9期前まで）で、EPSが毎期プラス（赤字なし）かつ最新期が9期前の2倍以上、BPSが10期の間ずっと前期より増加（9回連続増加）、1株配当は減配1回まで・無配なし。", False),
     ("　EPS・BPS・配当の10期分は、最新・5年前・9年前の有報の「主要な経営指標等の推移」をつなげたもの。配当は分割で過去分を直していない有報があるため、発行済株式数の変化と配当の跳ね方から分割を推定して直しています。2%未満の減少は端数として減配に数えていません。10期分そろわない銘柄（上場10年未満、決算期変更など）は第2段階を判定していません。", False),
+    ("・10年推移シート＝銘柄ごとの直近10期のEPS・1株配当・配当性向（連結＝1株配当÷EPS、EPSが赤字の期は空欄）・自社株買い・BPS。1株当たりの値は株式分割を推定して今の株数ベースに調整。自社株買い＝キャッシュ・フロー計算書の自己株式の取得による支出（会社独自の科目名を含み、なければ株主資本等変動計算書の自己株式の取得）。最新・2・4・6・8年前の有報の当期・前期分をつないでいます。", False),
     ("・ROE・自己資本比率＝有報「主要な経営指標等の推移」の値（連結優先）。", False),
     ("・現金÷時価総額、ネットキャッシュ÷時価総額＝（保有現金−借入金・社債・CPなどの有利子負債）÷時価総額。銀行・保険・証券は空欄。", False),
     ("・売上の伸び・営業利益の伸び＝直近期の前期比（連結優先）。営業利益は前期の絶対値で割っています。", False),

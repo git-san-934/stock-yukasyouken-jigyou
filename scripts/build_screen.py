@@ -627,6 +627,18 @@ def main():
         hb = build(hist)
         for r in rows:
             r.update(hb.get(r["code"], {}))
+    cfh = raw.parent / "history_cf.jsonl.gz"
+    if cfh.exists():  # 自己株式の取得額の10年分を詳細に足す
+        from build_history import build_buyback
+        bb = build_buyback(cfh)
+        for r in rows:
+            if not r.get("detail"):
+                continue
+            det = json.loads(r["detail"])
+            m = bb.get(r["code"], {})
+            det["k"] = [None if m.get(y.replace(".", "-")) is None else round(m[y.replace(".", "-")] / 1e6, 1)
+                        for y in det["y"]]
+            r["detail"] = json.dumps(det, separators=(",", ":"))
     cols = list(dict.fromkeys(k for r in rows for k in r))
     with open(out, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=cols)
