@@ -24,8 +24,9 @@ from extract_business import _ensure_csv_zip, _iter_csv_rows
 
 OUT = ROOT / "screen"
 KEEP = re.compile(r"SummaryOfBusinessResults$|FiscalYearEndDateDEI$|SecurityCodeDEI$|"
-                  r"PurchaseOfTreasury\w*FinCF\w*$|PaymentsForPurchaseOfTreasury\w*FinCF\w*$")
-CF = re.compile(r"PurchaseOfTreasury\w*FinCF")  # 自己株式の取得による支出（当期・前期）
+                  r"Treasury(Stock|Share)\w*(FinCF|SS)\w*$|PurchaseOfTreasury(Stock|Shares)$")
+# 自己株式の取得：キャッシュ・フロー計算書（会社独自の要素名も含む）と株主資本等変動計算書（当期・前期）
+CF = re.compile(r"Treasury(Stock|Share)\w*(FinCF|SS)|PurchaseOfTreasury(Stock|Shares)$")
 WANT = re.compile(r"PerShare|EquityToAssetRatio|IssuedShares|NetAssets|Equity")
 CTX = re.compile(r"^(CurrentYear|Prior[1-4]Year)(Instant|Duration)(_NonConsolidatedMember)?$|^FilingDateInstant$")
 
@@ -92,7 +93,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--offsets", type=int, nargs="+", default=[0, 5, 10])
     ap.add_argument("--limit", type=int)
-    ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--out", default="history.jsonl.gz")
     ap.add_argument("--retry", action="store_true", help="前回失敗した分だけ取り直して追記する")
     a = ap.parse_args()
