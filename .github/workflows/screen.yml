@@ -38,8 +38,9 @@ jobs:
         run: |
           OFFS=$(jq -r '.history // [] | map(tostring) | join(" ")' screen/run.json)
           LIMIT=$(jq -r '.limit // empty' screen/run.json)
+          HOUT=$(jq -r '.history_out // "history.jsonl.gz"' screen/run.json)
           if [ -n "$OFFS" ]; then
-            cd scripts && python fetch_history.py --offsets $OFFS ${LIMIT:+--limit $LIMIT}
+            cd scripts && python fetch_history.py --offsets $OFFS --out "$HOUT" ${LIMIT:+--limit $LIMIT}
           fi
       - name: 株価を取得
         continue-on-error: true

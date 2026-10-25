@@ -23,7 +23,9 @@ from edinet_common import DATA, DOC_TYPE_YUHO, ROOT, get_doc_list
 from extract_business import _ensure_csv_zip, _iter_csv_rows
 
 OUT = ROOT / "screen"
-KEEP = re.compile(r"SummaryOfBusinessResults$|FiscalYearEndDateDEI$|SecurityCodeDEI$")
+KEEP = re.compile(r"SummaryOfBusinessResults$|FiscalYearEndDateDEI$|SecurityCodeDEI$|"
+                  r"PurchaseOfTreasury\w*FinCF\w*$|PaymentsForPurchaseOfTreasury\w*FinCF\w*$")
+CF = re.compile(r"PurchaseOfTreasury\w*FinCF")  # 自己株式の取得による支出（当期・前期）
 WANT = re.compile(r"PerShare|EquityToAssetRatio|IssuedShares|NetAssets|Equity")
 CTX = re.compile(r"^(CurrentYear|Prior[1-4]Year)(Instant|Duration)(_NonConsolidatedMember)?$|^FilingDateInstant$")
 
@@ -80,7 +82,7 @@ def collect(code: str, offset: int, doc_id: str) -> dict:
         if el.endswith("CurrentFiscalYearEndDateDEI"):
             period_end = val
             continue
-        if WANT.search(el) and CTX.match(ctx):
+        if (WANT.search(el) or CF.search(el)) and CTX.match(ctx):
             rows.append([el, ctx, val[:60]])
     shutil.rmtree(ROOT / "cache" / "docs" / doc_id, ignore_errors=True)
     return {"code": code, "offset": offset, "doc_id": doc_id, "period_end": period_end, "rows": rows}
@@ -91,6 +93,7 @@ def main() -> None:
     ap.add_argument("--offsets", type=int, nargs="+", default=[0, 5, 10])
     ap.add_argument("--limit", type=int)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--out", default="history.jsonl.gz")
     a = ap.parse_args()
 
     metas = []
@@ -109,7 +112,7 @@ def main() -> None:
         else:
             jobs += [(by_sec[sc], off, doc) for sc, doc in find_old_docs(metas, off).items()]
 
-    dest = OUT / "history.jsonl.gz"
+    dest = OUT / a.out
     failures = []
     done = 0
     with gzip.open(dest, "wt", encoding="utf-8") as fh, ThreadPoolExecutor(max_workers=a.workers) as ex:
@@ -122,7 +125,7 @@ def main() -> None:
             done += 1
             if done % 500 == 0:
                 print(f"{done}/{len(jobs)} failures={len(failures)}", flush=True)
-    (OUT / "history_failures.json").write_text(json.dumps(failures, ensure_ascii=False, indent=1))
+    (OUT / a.out.replace(".jsonl.gz", "_failures.json")).write_text(json.dumps(failures, ensure_ascii=False, indent=1))
     print(f"done {done} failures={len(failures)}")
     sys.exit(0)
 
