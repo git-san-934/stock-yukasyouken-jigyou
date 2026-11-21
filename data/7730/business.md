@@ -1,12 +1,14 @@
 # マニー株式会社 事業の内容
 
-> 出典: 有価証券報告書 (EDINET 書類ID S100X59Q) / 対象期間 2024-09-01〜2025-08-31
+> 出典: 有価証券報告書 (EDINET 書類ID S100ZJ79) / 対象期間 2025-09-01〜2026-08-31
 
 ３【事業の内容】
 
-当社グループ（当社及び当社の子会社）は、当社及び子会社10社により構成されており、皮膚縫合器・眼科ナイフをはじめとしたサージカル関連製品、手術用針付縫合糸・針付縫合糸の材料であるアイレス縫合針・アイド縫合針をはじめとしたアイレス針関連製品、歯科用根管治療機器・歯科用回転切削機器・歯科用修復材等をはじめとしたデンタル関連製品の製造及び販売を主たる業務としております。
+当社グループ（当社及び当社の子会社及び関連会社）は、計13社により構成されており、皮膚縫合器・眼科ナイフをはじめとしたサージカル関連製品、手術用針付縫合糸・針付縫合糸の材料であるアイレス縫合針・アイド縫合針をはじめとしたアイレス針関連製品、歯科用根管治療機器・歯科用回転切削機器・歯科用修復材等をはじめとしたデンタル関連製品の製造及び販売を主たる業務としております。
 
-当連結会計年度末現在における各製品の当社と関係会社の位置付け、並びに当社グループの事業内容及び当社と関係会社の当該事業に係る位置付けは次のとおりであります。 セグメントの名称製品名各製品の当社と関係会社の位置付け製造販売サージカル関連製品手術用機器
+当連結会計年度末現在における各製品の当社と関係会社の位置付け、並びに当社グループの事業内容及び当社と関係会社の当該事業に係る位置付けは次のとおりであります。
+
+なお、2026年４月に中国に設立した馬尼医療器械（佛山）有限公司について、同社は2026年８月期時点では事業活動を開始していないため、下記の表内には含めておりません。 セグメントの名称製品名各製品の当社と関係会社の位置付け製造販売サージカル関連製品手術用機器
 
 皮膚縫合器
 
@@ -22,9 +24,9 @@
 
 硝子体鑷子
 
-（しょうしたいせっし）当社MANI HANOI CO., LTD.当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司MANI MEDICAL INDIA PRIVATE LIMITEDMANI MEDICAL AMERICA, INC.アイレス針関連製品手術用針付縫合糸当社MANI HANOI CO., LTD.当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司MANI MEDICAL AMERICA, INC.手術用針付縫合糸用針（材料）
+（しょうしたいせっし）当社MANI HANOI CO., LTD.当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司MANI MEDICAL INDIA PRIVATE LIMITEDMANI ASIA SDN. BHD.MANI MEDICAL AMERICA, INC.iRIS EYE GmbHアイレス針関連製品手術用針付縫合糸当社MANI HANOI CO., LTD.当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司MANI MEDICAL INDIA PRIVATE LIMITEDMANI ASIA SDN. BHD.MANI MEDICAL AMERICA, INC.MANI MEDICAL GERMANY GmbH手術用針付縫合糸用針（材料）
 
-アイレス縫合針当社MANI HANOI CO., LTD.MANI YANGON LTD.当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司手術用縫合針
+アイレス縫合針当社MANI HANOI CO., LTD.MANI YANGON LIMITED当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司手術用縫合針
 
 アイド縫合針当社MANI HANOI CO., LTD.当社馬尼（北京）貿易有限公司デンタル関連製品歯科用根管治療機器
 
@@ -34,7 +36,7 @@ NiTiファイル
 
 クレンザー
 
-ブローチ当社MANI HANOI CO., LTD.MANI YANGON LTD.MANI VIENTIANE SOLE CO., LTD.当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司MANI MEDICAL INDIA PRIVATE LIMITEDMANI MEDICAL AMERICA, INC.歯科用回転切削機器
+ブローチ当社MANI HANOI CO., LTD.MANI YANGON LIMITEDMANI VIENTIANE SOLE CO., LTD.当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司MANI MEDICAL INDIA PRIVATE LIMITEDMANI ASIA SDN. BHD.MANI MEDICAL AMERICA, INC.MANI MEDICAL GERMANY GmbH歯科用回転切削機器
 
 ダイヤバー
 
@@ -42,7 +44,7 @@ NiTiファイル
 
 ステンレスバー
 
-ピーソリーマ当社MANI HANOI CO., LTD. 当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司MANI MEDICAL INDIA PRIVATE LIMITEDMANI MEDICAL AMERICA, INC.歯科材料
+ピーソリーマ当社MANI HANOI CO., LTD. 当社MANI MEDICAL HANOI CO., LTD馬尼（北京）貿易有限公司MANI MEDICAL INDIA PRIVATE LIMITEDMANI ASIA SDN. BHD.MANI MEDICAL AMERICA, INC.MANI MEDICAL GERMANY GmbH歯科材料
 
 歯科用修復材MANI MEDICAL GERMANY GmbHMANI MEDICAL GERMANY GmbHMANI MEDICAL HANOI CO., LTDMANI MEDICAL INDIA PRIVATE LIMITED （注）
 
@@ -114,16 +116,18 @@ NiTiファイル
 
 18．歯科用修復材
 
-歯が欠損した場合に歯冠を修復するために被覆する人工修復材料です。 事業系統図（2025年８月31日時点）
+歯が欠損した場合に歯冠を修復するために被覆する人工修復材料です。 事業系統図（2026年８月31日時点）
 
 前述した事項を事業系統図によって示すと次のとおりであります。
 
 (注)１．（
 
-）書きは当社グループの持分割合を示しております。
+）書きは当社グループの持分割合を示しており、2026年８月31日時点における重要な子会社の状況を記載しております。
 
 ２．[
 
 ] 書きはセグメントの名称を示しておりますが、「各関連製品」を省略しております。
 
-３．外部顧客とは、主にディストリビューター及び糸メーカーを表しております。
+３．外部顧客とは、主にディストリビューター及び縫合糸メーカーを表しております。
+
+４．MANI MEDICAL GERMANY GmbHはデンタル関連製品の販売、歯科用修復材の開発・生産及び歯科用針付縫合糸（アイレス針関連製品に区分）の販売を行っております。
